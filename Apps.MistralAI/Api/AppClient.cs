@@ -1,4 +1,4 @@
-namespace Apps.App.Api;
+namespace Apps.MistralAI.Api;
 
 public class AppClient
 {

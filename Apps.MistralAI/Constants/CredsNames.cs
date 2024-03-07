@@ -1,4 +1,4 @@
-namespace Apps.App.Constants;
+namespace Apps.MistralAI.Constants;
 
 public static class CredsNames
 {

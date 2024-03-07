@@ -1,8 +1,8 @@
-using Apps.App.Invocables;
+using Apps.MistralAI.Invocables;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Apps.App.Actions;
+namespace Apps.MistralAI.Actions;
 
 [ActionList]
 public class Actions : AppInvocable

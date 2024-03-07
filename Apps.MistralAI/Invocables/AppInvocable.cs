@@ -1,9 +1,9 @@
-using Apps.App.Api;
+using Apps.MistralAI.Api;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Invocation;
 
-namespace Apps.App.Invocables;
+namespace Apps.MistralAI.Invocables;
 
 public class AppInvocable : BaseInvocable
 {
