@@ -6,7 +6,7 @@
         <Nullable>enable</Nullable>
         <Product>Mistral AI</Product>
         <Description>Fast, open-source and secure language models. Facilitated specialisation of models on business use-cases, leveraging private data and usage feedback.</Description>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <PackageId>Apps.MistralAI</PackageId>
         <RootNamespace>Apps.MistralAI</RootNamespace>
         <AssemblyName>Apps.MistralAI</AssemblyName>
