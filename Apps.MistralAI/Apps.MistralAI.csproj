@@ -19,9 +19,9 @@
 
     <ItemGroup>
       <None Remove="image\icon.png" />
-      <Resource Include="image\icon.png">
+      <EmbeddedResource Include="image\icon.png">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-      </Resource>
+      </EmbeddedResource>
     </ItemGroup>
 
 </Project>
