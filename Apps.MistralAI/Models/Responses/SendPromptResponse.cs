@@ -11,6 +11,8 @@ public class SendPromptResponse
     [Display("Created at")]
     public DateTime CreatedAt { get; set; }
 
+    public List<MessageResponse> MessageHistory { get; set; }
+
     public SendPromptResponse(SendChatCompletionsResponse model)
     {
         Id = model.Id;
@@ -21,5 +23,7 @@ public class SendPromptResponse
         
         Content = model.Choices.First().Message.Content;
         CreatedAt = DateTimeOffset.FromUnixTimeSeconds(model.Created).DateTime;
+        
+        MessageHistory = new List<MessageResponse>();
     }
 }
