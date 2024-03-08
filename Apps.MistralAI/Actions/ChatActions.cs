@@ -15,7 +15,9 @@ public class ChatActions(InvocationContext invocationContext) : AppInvocable(inv
     [Action("Send prompt", Description = "Send a prompt to the ai model and return the response")]
     public async Task<SendPromptResponse> SendPrompt([ActionParameter]SendPromptRequest request)
     {
-        var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, request, Creds);
+        var apiRequest = new CreateChatCompletionRequest(request);
+        var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, apiRequest, creds);
+       
         return new SendPromptResponse(response);
     }
 }
