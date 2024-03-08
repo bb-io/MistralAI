@@ -16,7 +16,7 @@ public class ChatActions(InvocationContext invocationContext) : AppInvocable(inv
     public async Task<SendPromptResponse> SendPrompt([ActionParameter]SendPromptRequest request)
     {
         var apiRequest = new CreateChatCompletionRequest(request);
-        var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, apiRequest, creds);
+        var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, apiRequest, Creds);
        
         return new SendPromptResponse(response);
     }
