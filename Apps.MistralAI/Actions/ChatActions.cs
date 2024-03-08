@@ -24,8 +24,8 @@ public class ChatActions(InvocationContext invocationContext) : AppInvocable(inv
             response.MessageHistory = request.MessageHistory;
         }
         
-        response.MessageHistory.Add(new MessageResponse { Role = "user", Content = request.Message });
-        response.MessageHistory.Add(new MessageResponse { Role = "assistant", Content = response.Content });
+        response.AddMessageToHistory(new MessageResponse { Role = "user", Content = request.Message });
+        response.AddMessageToHistory(new MessageResponse { Role = "assistant", Content = response.Content });
         
         return response;
     }

@@ -18,5 +18,5 @@ public class SendPromptRequest
     public bool? SafePrompt { get; set; }
 
     [Display("Message history")]
-    public List<MessageResponse>? MessageHistory { get; set; }
+    public List<string>? MessageHistory { get; set; }
 }

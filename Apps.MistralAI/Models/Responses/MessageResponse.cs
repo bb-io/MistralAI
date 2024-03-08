@@ -1,4 +1,6 @@
-﻿namespace Apps.MistralAI.Models.Responses;
+﻿using Newtonsoft.Json;
+
+namespace Apps.MistralAI.Models.Responses;
 
 public class MessageResponse
 {
