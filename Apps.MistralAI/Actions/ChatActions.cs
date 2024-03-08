@@ -1,6 +1,8 @@
 using Apps.MistralAI.Constants;
 using Apps.MistralAI.Invocables;
+using Apps.MistralAI.Models.Requests;
 using Apps.MistralAI.Models.Responses;
+using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using RestSharp;
@@ -10,10 +12,10 @@ namespace Apps.MistralAI.Actions;
 [ActionList]
 public class ChatActions(InvocationContext invocationContext) : AppInvocable(invocationContext)
 {
-    [Action("Get models", Description = "Get the list of models available for translation")]
-    public async Task<List<GetModelResponse>> GetModels()
+    [Action("Send prompt", Description = "Send a prompt to the ai model and return the response")]
+    public async Task<SendPromptResponse> SendPrompt([ActionParameter]SendPromptRequest request)
     {
-        var response = await Client.ExecuteWithJson<GetModelsResponse>(ApiEndpoints.Models, Method.Get, null, Creds);
-        return response.Data;
+        var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, request, Creds);
+        return new SendPromptResponse(response);
     }
 }
