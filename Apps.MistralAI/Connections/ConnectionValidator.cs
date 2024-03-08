@@ -18,7 +18,7 @@ public class ConnectionValidator : IConnectionValidator
         {
             await _client.ExecuteRequest(new MistralAiRequest(new()
             {
-                Url = ApiEndpoints.Models,
+                Url = ApiConstants.BaseUrl + ApiEndpoints.Models,
                 Method = Method.Get
             }, authenticationCredentialsProviders.ToArray()));
             
