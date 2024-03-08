@@ -12,7 +12,13 @@ public class SendPromptRequest
 
     public string Message { get; set; }
     
-    public string? Temperature { get; set; }
+    public double? Temperature { get; set; }
+
+    [Display("Max tokens")]
+    public int? MaxTokens { get; set; }
+    
+    [Display("Top p")]
+    public double? TopP { get; set; }
 
     [Display("Safe prompt")]
     public bool? SafePrompt { get; set; }

@@ -8,9 +8,25 @@ public class CreateChatCompletionRequest
 
     public List<MessageRequest> Messages { get; set; }
 
+    public double? Temperature { get; set; }
+
+    [JsonProperty("top_p")]
+    public double? TopP { get; set; }
+    
+    [JsonProperty("max_tokens")]
+    public int? MaxTokens { get; set; }
+    
+    [JsonProperty("safe_prompt")]
+    public bool? SafePrompt { get; set; }
+
     public CreateChatCompletionRequest(SendPromptRequest request)
     {
         Model = request.Model;
+        Temperature = request.Temperature;
+        TopP = request.TopP;
+        MaxTokens = request.MaxTokens;
+        SafePrompt = request.SafePrompt;
+        
         Messages = new List<MessageRequest>();
         ParseMessageHistory(request.MessageHistory);
         

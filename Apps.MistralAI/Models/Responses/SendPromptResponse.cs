@@ -12,6 +12,7 @@ public class SendPromptResponse
     [Display("Created at")]
     public DateTime CreatedAt { get; set; }
 
+    [Display("Message history")]
     public List<string> MessageHistory { get; set; }
 
     public SendPromptResponse(SendChatCompletionsResponse model)
