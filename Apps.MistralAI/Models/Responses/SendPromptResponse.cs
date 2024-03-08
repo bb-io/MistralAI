@@ -5,8 +5,6 @@ namespace Apps.MistralAI.Models.Responses;
 
 public class SendPromptResponse
 {
-    public string Id { get; set; }
-
     public string Content { get; set; }
 
     [Display("Created at")]
@@ -17,7 +15,6 @@ public class SendPromptResponse
 
     public SendPromptResponse(SendChatCompletionsResponse model)
     {
-        Id = model.Id;
         if (model.Choices.Count == 0)
         {
             throw new Exception("No choices returned from the model");

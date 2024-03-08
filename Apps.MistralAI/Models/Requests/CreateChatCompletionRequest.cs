@@ -5,11 +5,11 @@ namespace Apps.MistralAI.Models.Requests;
 public class CreateChatCompletionRequest
 {
     public string Model { get; set; }
-
+    
     public List<MessageRequest> Messages { get; set; }
-
+    
     public double? Temperature { get; set; }
-
+    
     [JsonProperty("top_p")]
     public double? TopP { get; set; }
     
@@ -18,7 +18,10 @@ public class CreateChatCompletionRequest
     
     [JsonProperty("safe_prompt")]
     public bool? SafePrompt { get; set; }
-
+    
+    [JsonProperty("random_seed")]
+    public int? RandomSeed { get; set; }
+    
     public CreateChatCompletionRequest(SendPromptRequest request)
     {
         Model = request.Model;
@@ -26,6 +29,7 @@ public class CreateChatCompletionRequest
         TopP = request.TopP;
         MaxTokens = request.MaxTokens;
         SafePrompt = request.SafePrompt;
+        RandomSeed = request.RandomSeed;
         
         Messages = new List<MessageRequest>();
         ParseMessageHistory(request.MessageHistory);

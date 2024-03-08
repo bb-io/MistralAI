@@ -1,5 +1,4 @@
 ﻿using Apps.MistralAI.DataSourceHandlers;
-using Apps.MistralAI.Models.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 
@@ -22,6 +21,9 @@ public class SendPromptRequest
 
     [Display("Safe prompt")]
     public bool? SafePrompt { get; set; }
+    
+    [Display("Random seed")]
+    public int? RandomSeed { get; set; }
 
     [Display("Message history")]
     public List<string>? MessageHistory { get; set; }
