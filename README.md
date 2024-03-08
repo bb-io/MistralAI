@@ -31,7 +31,23 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ## Example
 
+Using our application you can build the following bird:
+
 ![MistralAIExample](image/README/MistralAIExample.png)
+
+First action:
+
+![MistralAIExample](image/README/MistralAIExample-1-action.png)
+
+Second action:
+
+![MistralAIExample](image/README/MistralAIExample-2-action.png)
+
+Third action:
+
+![MistralAIExample](image/README/MistralAIExample-3-action.png)
+
+As you can see, you can specify a message history to maintain the context of the conversation
 
 ## Feedback
 
