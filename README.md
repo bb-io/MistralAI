@@ -29,6 +29,12 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ![MistralAIConnection](image/README/MistralAIConnection.png)
 
+## Actions
+
+### Chat
+
+- **Send prompt**: This action allows you to send a prompt to an AI model and receive its response. When you submit your message, it's processed and sent to the AI through our system. The AI then generates a response based on your input. If you've had a conversation history, it will be preserved and included along with the new AI response in the returned details
+
 ## Example
 
 Using our application you can build the following bird:
