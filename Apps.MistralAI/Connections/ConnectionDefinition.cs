@@ -10,7 +10,7 @@ public class ConnectionDefinition : IConnectionDefinition
     {
         new ConnectionProperty(CredsNames.ApiKey)
         {
-            DisplayName = "API key", Description = "API key for the Mistral AI API", Sensitive = true
+            DisplayName = "API Key", Description = "API key for the Mistral AI API", Sensitive = true
         }
     };
     
