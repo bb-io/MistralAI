@@ -1,3 +1,4 @@
+using RestSharp;
 using Apps.MistralAI.Constants;
 using Apps.MistralAI.Invocables;
 using Apps.MistralAI.Models.Requests;
@@ -5,7 +6,6 @@ using Apps.MistralAI.Models.Responses;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using RestSharp;
 
 namespace Apps.MistralAI.Actions;
 
