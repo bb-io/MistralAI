@@ -20,7 +20,7 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ## Connecting 
 
-1. Navigate to apps and search for Contentstack. If you cannot find Contentstack, then click _Add App_ in the top right corner, select Contentstack, and add the app to your Blackbird environment.
+1. Navigate to apps and search for Mistral. If you cannot find Mistral, then click _Add App_ in the top right corner, select Contentstack, and add the app to your Blackbird environment.
 2. Click _Add Connection_.
 3. Name your connection for future reference, e.g., 'My client'.
 4. In the _API Key_ field, input your API Key. You can get it from [here](https://console.mistral.ai/api-keys/).
