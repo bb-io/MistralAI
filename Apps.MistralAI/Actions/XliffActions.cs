@@ -14,6 +14,7 @@ using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
 using Blackbird.Xliff.Utils;
 using Blackbird.Xliff.Utils.Extensions;
+using Blackbird.Xliff.Utils.Models;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
@@ -29,111 +30,87 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
             "Processes each translation unit in the XLIFF file according to the provided instructions (by default it just translates the source tags) and updates the target text for each unit.")]
     public async Task<ProcessXliffResponse> ProcessXliffAsync([ActionParameter] ProcessXliffRequest request)
     {
-        var xliffDocument = await DownloadXliffDocumentAsync(request.File);
-        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, ProcessType.Process);
-
-        foreach (var translationEntity in translationUnits)
-        {
-            var translationUnit =
-                xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
-            if (translationUnit != null)
-            {
-                if (request.AddMissingTrailingTags is true)
-                {
-                    var sourceContent = translationUnit.Source;
-                    var targetContent = translationUnit.Target;
-
-                    if (sourceContent == null)
-                    {
-                        continue;
-                    }
-
-                    var tagPattern = @"<(?<tag>\w+)([^>]*)>(?<content>.*)</\k<tag>>";
-                    var sourceMatch = Regex.Match(sourceContent, tagPattern, RegexOptions.Singleline);
-                    if (sourceMatch.Success)
-                    {
-                        var tagName = sourceMatch.Groups["tag"].Value;
-                        var tagAttributes = sourceMatch.Groups[2].Value;
-                        var openingTag = $"<{tagName}{tagAttributes}>";
-                        var closingTag = $"</{tagName}>";
-
-                        if (targetContent != null && !targetContent.Contains(openingTag) &&
-                            !targetContent.Contains(closingTag))
-                        {
-                            translationUnit.Target = openingTag + targetContent + closingTag;
-                        }
-                    }
-                    else
-                    {
-                        translationUnit.Target = translationEntity.TranslatedText;
-                    }
-                }
-                else
-                {
-                    translationUnit.Target = translationEntity.TranslatedText;
-                }
-            }
-        }
-
-        var stream = xliffDocument.ToStream();
-        var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
-        return new ProcessXliffResponse { File = fileReference };
+        return await ProcessXliffInternalAsync(request, ProcessType.Process);
     }
 
     [Action("Post-edit XLIFF file", Description = "Updates the targets of XLIFF file")]
     public async Task<ProcessXliffResponse> PostEditXliffAsync([ActionParameter] ProcessXliffRequest request)
     {
+        return await ProcessXliffInternalAsync(request, ProcessType.PostEdit);
+    }
+    
+    [Action("Get quality scores for XLIFF file", Description = "Get quality scores for XLIFF file")]
+    public async Task<ProcessXliffResponse> GetQualityScoreForXliff([ActionParameter] ProcessXliffRequest request)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task<ProcessXliffResponse> ProcessXliffInternalAsync(ProcessXliffRequest request,
+        ProcessType processType)
+    {
         var xliffDocument = await DownloadXliffDocumentAsync(request.File);
-        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, ProcessType.PostEdit);
+        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, processType);
 
-        foreach (var translationEntity in translationUnits)
-        {
-            var translationUnit =
-                xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
-            if (translationUnit != null)
-            {
-                if (request.AddMissingTrailingTags is true)
-                {
-                    var sourceContent = translationUnit.Source;
-                    var targetContent = translationUnit.Target;
+        UpdateTranslationUnitTargets(translationUnits, xliffDocument, request.AddMissingTrailingTags);
 
-                    if (sourceContent == null)
-                    {
-                        continue;
-                    }
-
-                    var tagPattern = @"<(?<tag>\w+)([^>]*)>(?<content>.*)</\k<tag>>";
-                    var sourceMatch = Regex.Match(sourceContent, tagPattern, RegexOptions.Singleline);
-                    if (sourceMatch.Success)
-                    {
-                        var tagName = sourceMatch.Groups["tag"].Value;
-                        var tagAttributes = sourceMatch.Groups[2].Value;
-                        var openingTag = $"<{tagName}{tagAttributes}>";
-                        var closingTag = $"</{tagName}>";
-
-                        if (targetContent != null && !targetContent.Contains(openingTag) &&
-                            !targetContent.Contains(closingTag))
-                        {
-                            translationUnit.Target = openingTag + targetContent + closingTag;
-                        }
-                    }
-                    else
-                    {
-                        translationUnit.Target = translationEntity.TranslatedText;
-                    }
-                }
-                else
-                {
-                    translationUnit.Target = translationEntity.TranslatedText;
-                }
-            }
-        }
-
-        var stream = xliffDocument.ToStream();
+        using var stream = xliffDocument.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
         return new ProcessXliffResponse { File = fileReference };
     }
 
+    private void UpdateTranslationUnitTargets(IEnumerable<TranslationEntity> translationEntities,
+        XliffDocument xliffDocument, bool? addMissingTrailingTags)
+    {
+        foreach (var translationEntity in translationEntities)
+        {
+            var translationUnit =
+                xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
+            if (translationUnit == null)
+            {
+                continue;
+            }
+
+            if (addMissingTrailingTags == true)
+            {
+                UpdateTranslationUnitWithTrailingTags(translationUnit, translationEntity.TranslatedText);
+            }
+            else
+            {
+                translationUnit.Target = translationEntity.TranslatedText;
+            }
+        }
+    }
+
+    private void UpdateTranslationUnitWithTrailingTags(TranslationUnit translationUnit, string fallbackTranslation)
+    {
+        var sourceContent = translationUnit.Source;
+        var targetContent = translationUnit.Target;
+
+        if (sourceContent == null)
+        {
+            translationUnit.Target = fallbackTranslation;
+            return;
+        }
+
+        var tagPattern = @"<(?<tag>\w+)([^>]*)>(?<content>.*)</\k<tag>>";
+        var sourceMatch = Regex.Match(sourceContent, tagPattern, RegexOptions.Singleline);
+        if (sourceMatch.Success)
+        {
+            var tagName = sourceMatch.Groups["tag"].Value;
+            var tagAttributes = sourceMatch.Groups[2].Value;
+            var openingTag = $"<{tagName}{tagAttributes}>";
+            var closingTag = $"</{tagName}>";
+
+            if (targetContent != null && !targetContent.Contains(openingTag) && !targetContent.Contains(closingTag))
+            {
+                translationUnit.Target = openingTag + targetContent + closingTag;
+            }
+        }
+        else
+        {
+            translationUnit.Target = fallbackTranslation;
+        }
+    }
 
     private async Task<XliffDocument> DownloadXliffDocumentAsync(FileReference file)
     {
