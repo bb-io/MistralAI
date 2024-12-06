@@ -30,11 +30,12 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
     public async Task<ProcessXliffResponse> ProcessXliffAsync([ActionParameter] ProcessXliffRequest request)
     {
         var xliffDocument = await DownloadXliffDocumentAsync(request.File);
-        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument);
+        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, ProcessType.Process);
 
         foreach (var translationEntity in translationUnits)
         {
-            var translationUnit = xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
+            var translationUnit =
+                xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
             if (translationUnit != null)
             {
                 if (request.AddMissingTrailingTags is true)
@@ -56,7 +57,8 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                         var openingTag = $"<{tagName}{tagAttributes}>";
                         var closingTag = $"</{tagName}>";
 
-                        if (targetContent != null && !targetContent.Contains(openingTag) && !targetContent.Contains(closingTag))
+                        if (targetContent != null && !targetContent.Contains(openingTag) &&
+                            !targetContent.Contains(closingTag))
                         {
                             translationUnit.Target = openingTag + targetContent + closingTag;
                         }
@@ -72,11 +74,66 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                 }
             }
         }
-        
+
         var stream = xliffDocument.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
         return new ProcessXliffResponse { File = fileReference };
     }
+
+    [Action("Post-edit XLIFF file", Description = "Updates the targets of XLIFF file")]
+    public async Task<ProcessXliffResponse> PostEditXliffAsync([ActionParameter] ProcessXliffRequest request)
+    {
+        var xliffDocument = await DownloadXliffDocumentAsync(request.File);
+        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, ProcessType.PostEdit);
+
+        foreach (var translationEntity in translationUnits)
+        {
+            var translationUnit =
+                xliffDocument.TranslationUnits.FirstOrDefault(x => translationEntity.TranslationId == x.Id);
+            if (translationUnit != null)
+            {
+                if (request.AddMissingTrailingTags is true)
+                {
+                    var sourceContent = translationUnit.Source;
+                    var targetContent = translationUnit.Target;
+
+                    if (sourceContent == null)
+                    {
+                        continue;
+                    }
+
+                    var tagPattern = @"<(?<tag>\w+)([^>]*)>(?<content>.*)</\k<tag>>";
+                    var sourceMatch = Regex.Match(sourceContent, tagPattern, RegexOptions.Singleline);
+                    if (sourceMatch.Success)
+                    {
+                        var tagName = sourceMatch.Groups["tag"].Value;
+                        var tagAttributes = sourceMatch.Groups[2].Value;
+                        var openingTag = $"<{tagName}{tagAttributes}>";
+                        var closingTag = $"</{tagName}>";
+
+                        if (targetContent != null && !targetContent.Contains(openingTag) &&
+                            !targetContent.Contains(closingTag))
+                        {
+                            translationUnit.Target = openingTag + targetContent + closingTag;
+                        }
+                    }
+                    else
+                    {
+                        translationUnit.Target = translationEntity.TranslatedText;
+                    }
+                }
+                else
+                {
+                    translationUnit.Target = translationEntity.TranslatedText;
+                }
+            }
+        }
+
+        var stream = xliffDocument.ToStream();
+        var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
+        return new ProcessXliffResponse { File = fileReference };
+    }
+
 
     private async Task<XliffDocument> DownloadXliffDocumentAsync(FileReference file)
     {
@@ -95,21 +152,31 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
     }
 
     private async Task<List<TranslationEntity>> ProcessTranslationUnitsAsync(ProcessXliffRequest request,
-        XliffDocument xliff)
+        XliffDocument xliff, ProcessType processType)
     {
-        var systemPrompt = PromptBuilder.BuildSystemPrompt(string.IsNullOrEmpty(request.Prompt));
+        var systemPrompt = processType == ProcessType.Process
+            ? PromptBuilder.BuildSystemPrompt(string.IsNullOrEmpty(request.Prompt))
+            : PromptBuilder.GetPostEditPrompt();
+
         var results = new List<TranslationEntity>();
         var batches = xliff.TranslationUnits.Batch(request.GetBucketSize());
 
         foreach (var batch in batches)
         {
-            var json = JsonConvert.SerializeObject(batch.Select(x => new
-                { x.Id, x.Source }));
-            var userPrompt = PromptBuilder.BuildUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage, json);
-            
+            IEnumerable<object> selectedValues = processType == ProcessType.Process
+                ? batch.Select(x => new { x.Id, x.Source }).ToList()
+                : batch.Select(x => new { x.Id, x.Source, x.Target }).ToList();
+
+            var json = JsonConvert.SerializeObject(selectedValues);
+            var userPrompt = processType == ProcessType.Process
+                ? PromptBuilder.BuildUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage, json)
+                : PromptBuilder.BuildPostEditUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage,
+                    json);
+
             if (request.Glossary != null)
             {
-                var glossaryPromptPart = await GetGlossaryPromptPart(request.Glossary, json, request.GetFilterGlossary());
+                var glossaryPromptPart =
+                    await GetGlossaryPromptPart(request.Glossary, json, request.GetFilterGlossary());
                 if (glossaryPromptPart != null)
                 {
                     var glossaryPrompt =
@@ -121,16 +188,18 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                     userPrompt += glossaryPrompt;
                 }
             }
-            
+
             var apiRequest = new CreateChatCompletionRequest
             {
                 Model = request.Model,
-                Messages = [ new ("assistant", systemPrompt), new ("user", userPrompt)],
+                Messages = [new("assistant", systemPrompt), new("user", userPrompt)],
                 ResponseFormat = new() { Type = "json_object" }
             };
-            
-            var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, apiRequest, Creds);
-            
+
+            var response =
+                await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions,
+                    Method.Post, apiRequest, Creds);
+
             var content = response.Choices.First().Message.Content;
             TryCatchHelper.TryCatch(() =>
                 {
@@ -141,7 +210,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
 
         return results;
     }
-    
+
     protected async Task<string?> GetGlossaryPromptPart(FileReference glossary, string sourceContent, bool filter)
     {
         var glossaryStream = await fileManagementClient.DownloadAsync(glossary);
@@ -157,7 +226,8 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         foreach (var entry in blackbirdGlossary.ConceptEntries)
         {
             var allTerms = entry.LanguageSections.SelectMany(x => x.Terms.Select(y => y.Term));
-            if (filter && !allTerms.Any(x => Regex.IsMatch(sourceContent, $@"\b{x}\b", RegexOptions.IgnoreCase))) continue;
+            if (filter && !allTerms.Any(x => Regex.IsMatch(sourceContent, $@"\b{x}\b", RegexOptions.IgnoreCase)))
+                continue;
             entriesIncluded = true;
 
             glossaryPromptPart.AppendLine();
