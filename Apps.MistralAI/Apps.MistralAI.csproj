@@ -14,7 +14,10 @@
 
     <ItemGroup>
         <PackageReference Include="Blackbird.Applications.Sdk.Common" Version="2.6.0" />
+        <PackageReference Include="Blackbird.Applications.Sdk.Glossaries.Utils" Version="1.0.2-alpha1" />
         <PackageReference Include="Blackbird.Applications.Sdk.Utils" Version="1.0.25" />
+        <PackageReference Include="Blackbird.Xliff.Utils" Version="1.1.6" />
+        <PackageReference Include="morelinq" Version="4.3.0" />
     </ItemGroup>
 
     <ItemGroup>
