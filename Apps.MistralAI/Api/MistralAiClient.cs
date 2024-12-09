@@ -22,7 +22,7 @@ public class MistralAiClient : RestClient
         var request = new MistralAiRequest(new()
         {
             Url = ApiConstants.BaseUrl + endpoint,
-            Method = method,
+            Method = method
         }, creds);
 
         if (bodyObj is not null)

@@ -10,7 +10,9 @@ public class ConnectionDefinition : IConnectionDefinition
     {
         new ConnectionProperty(CredsNames.ApiKey)
         {
-            DisplayName = "API Key", Description = "API key for the Mistral AI API", Sensitive = true
+            DisplayName = "API Key", 
+            Description = "API key for the Mistral AI API", 
+            Sensitive = true
         }
     };
     
@@ -20,7 +22,6 @@ public class ConnectionDefinition : IConnectionDefinition
         {
             Name = "Developer API key",
             AuthenticationType = ConnectionAuthenticationType.Undefined,
-            ConnectionUsage = ConnectionUsage.Actions,
             ConnectionProperties = ConnectionProperties
         }
     };
@@ -29,10 +30,6 @@ public class ConnectionDefinition : IConnectionDefinition
         Dictionary<string, string> values)
     {
         var clientIdKeyValue = values.First(v => v.Key == CredsNames.ApiKey);
-        yield return new AuthenticationCredentialsProvider(
-            AuthenticationCredentialsRequestLocation.None,
-            clientIdKeyValue.Key,
-            clientIdKeyValue.Value
-        );
+        yield return new AuthenticationCredentialsProvider(clientIdKeyValue.Key, clientIdKeyValue.Value);
     }
 }
