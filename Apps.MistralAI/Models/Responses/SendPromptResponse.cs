@@ -13,6 +13,8 @@ public class SendPromptResponse
     [Display("Message history")]
     public List<string> MessageHistory { get; set; }
 
+    public UsageResponse Usage { get; set; }
+
     public SendPromptResponse(SendChatCompletionsResponse model)
     {
         if (model.Choices.Count == 0)
@@ -22,6 +24,7 @@ public class SendPromptResponse
         
         Content = model.Choices.First().Message.Content;
         CreatedAt = DateTimeOffset.FromUnixTimeSeconds(model.Created).DateTime;
+        Usage = model.Usage;
         
         MessageHistory = new List<string>();
     }

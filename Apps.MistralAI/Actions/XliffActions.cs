@@ -44,7 +44,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
     public async Task<ScoreXliffResponse> GetQualityScoreForXliff([ActionParameter] ScoreXliffRequest request)
     {
         var xliff = await DownloadXliffDocumentAsync(request.File);
-        var translationUnits = await ProcessTranslationUnitsAsync(new()
+        var result = await ProcessTranslationUnitsAsync(new()
         {
             Glossary = request.Glossary,
             Model = request.Model,
@@ -52,8 +52,9 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
             BucketSize = request.BucketSize,
             FilterGlossary = true
         }, xliff, ProcessType.Score);
-        
-        UpdateTranslationUnitTargets(translationUnits, xliff, false, ProcessType.Score);
+
+        var translationEntities = result.TranslationEntities;
+        UpdateTranslationUnitTargets(translationEntities, xliff, false, ProcessType.Score);
         
         if (request.Threshold != null && request.Condition != null && request.State != null)
         {
@@ -61,23 +62,23 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
             switch (request.Condition)
             {
                 case ">":
-                    filteredTUs = translationUnits.Where(x => x.QualityScore > request.Threshold).Select(x => x.TranslationId)
+                    filteredTUs = translationEntities.Where(x => x.QualityScore > request.Threshold).Select(x => x.TranslationId)
                         .ToList();
                     break;
                 case ">=":
-                    filteredTUs = translationUnits.Where(x => x.QualityScore >= request.Threshold).Select(x => x.TranslationId)
+                    filteredTUs = translationEntities.Where(x => x.QualityScore >= request.Threshold).Select(x => x.TranslationId)
                         .ToList();
                     break;
                 case "=":
-                    filteredTUs = translationUnits.Where(x => x.QualityScore == request.Threshold).Select(x => x.TranslationId)
+                    filteredTUs = translationEntities.Where(x => x.QualityScore == request.Threshold).Select(x => x.TranslationId)
                         .ToList();
                     break;
                 case "<":
-                    filteredTUs = translationUnits.Where(x => x.QualityScore < request.Threshold).Select(x => x.TranslationId)
+                    filteredTUs = translationEntities.Where(x => x.QualityScore < request.Threshold).Select(x => x.TranslationId)
                         .ToList();
                     break;
                 case "<=":
-                    filteredTUs = translationUnits.Where(x => x.QualityScore <= request.Threshold).Select(x => x.TranslationId)
+                    filteredTUs = translationEntities.Where(x => x.QualityScore <= request.Threshold).Select(x => x.TranslationId)
                         .ToList();
                     break;
             }
@@ -103,20 +104,21 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         
         await using var stream = xliff.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
-        return new ScoreXliffResponse { File = fileReference, AverageScore = translationUnits.Average(x => x.QualityScore) };
+        return new ScoreXliffResponse { File = fileReference, AverageScore = translationEntities.Average(x => x.QualityScore), Usage = result.Usage};
     }
 
     private async Task<ProcessXliffResponse> ProcessXliffInternalAsync(ProcessXliffRequest request,
         ProcessType processType)
     {
         var xliffDocument = await DownloadXliffDocumentAsync(request.File);
-        var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, processType);
+        var result = await ProcessTranslationUnitsAsync(request, xliffDocument, processType);
 
-        UpdateTranslationUnitTargets(translationUnits, xliffDocument, request.AddMissingTrailingTags, processType);
+        var translationEntities = result.TranslationEntities;
+        UpdateTranslationUnitTargets(translationEntities, xliffDocument, request.AddMissingTrailingTags, processType);
 
         await using var stream = xliffDocument.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
-        return new ProcessXliffResponse { File = fileReference };
+        return new ProcessXliffResponse { File = fileReference, Usage = result.Usage};
     }
 
     private void UpdateTranslationUnitTargets(IEnumerable<TranslationEntity> translationEntities,
@@ -255,13 +257,14 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         throw new Exception($"Unexpected operation occured. Process type: {processType.ToString()}");
     }
 
-    private async Task<List<TranslationEntity>> ProcessTranslationUnitsAsync(ProcessXliffRequest request,
+    private async Task<ProcessTranslationUnitsResult> ProcessTranslationUnitsAsync(ProcessXliffRequest request,
         XliffDocument xliff, ProcessType processType)
     {
         var systemPrompt = BuildSystemPrompt(request.Prompt, processType);
 
         var results = new List<TranslationEntity>();
         var batches = xliff.TranslationUnits.Batch(request.GetBucketSize());
+        var usage = new UsageResponse();
         foreach (var batch in batches)
         {
             var userPrompt = BuildUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage,
@@ -293,6 +296,8 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
             var response =
                 await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions,
                     Method.Post, apiRequest, Creds);
+            
+            usage += response.Usage;
 
             var content = response.Choices.First().Message.Content;
             TryCatchHelper.TryCatch(() =>
@@ -302,7 +307,11 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                 }, $"Failed to deserialize the response from Mistral AI, try again later. Response: {content}");
         }
 
-        return results;
+        return new()
+        {
+            TranslationEntities = results,
+            Usage = usage
+        };
     }
 
     protected async Task<string?> GetGlossaryPromptPart(FileReference glossary, string sourceContent, bool filter)
