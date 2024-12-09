@@ -41,10 +41,9 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
     }
     
     [Action("Get quality scores for XLIFF file", Description = "Get quality scores for XLIFF file")]
-    public async Task<ProcessXliffResponse> GetQualityScoreForXliff([ActionParameter] ScoreXliffRequest request)
+    public async Task<ScoreXliffResponse> GetQualityScoreForXliff([ActionParameter] ScoreXliffRequest request)
     {
         var xliff = await DownloadXliffDocumentAsync(request.File);
-        
         var translationUnits = await ProcessTranslationUnitsAsync(new()
         {
             Glossary = request.Glossary,
@@ -104,7 +103,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         
         await using var stream = xliff.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
-        return new ProcessXliffResponse { File = fileReference };
+        return new ScoreXliffResponse { File = fileReference, AverageScore = translationUnits.Average(x => x.QualityScore) };
     }
 
     private async Task<ProcessXliffResponse> ProcessXliffInternalAsync(ProcessXliffRequest request,
