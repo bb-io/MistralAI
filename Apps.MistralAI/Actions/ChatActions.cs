@@ -13,7 +13,7 @@ namespace Apps.MistralAI.Actions;
 public class ChatActions(InvocationContext invocationContext) : AppInvocable(invocationContext)
 {
     [Action("Send prompt", Description = "Send a prompt to the ai model and return the response")]
-    public async Task<SendPromptResponse> SendPrompt([ActionParameter]SendPromptRequest request)
+    public async Task<SendPromptResponse> SendPrompt([ActionParameter] SendPromptRequest request)
     {
         var apiRequest = new CreateChatCompletionRequest(request);
         var apiResponse = await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions, Method.Post, apiRequest, Creds);
