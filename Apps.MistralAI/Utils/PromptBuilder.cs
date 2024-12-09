@@ -74,12 +74,13 @@ public class PromptBuilder
 
     private const string QualityScorePrompt =
         "Your input is going to be a group of sentences in {source_language} and their translation into {target_language}. " +
-        "Only provide as output the ID of the sentence and the score number as a comma separated array of tuples. " +
-        "The score number is a score from 1 to 10 assessing the quality of the translation, considering the following criteria: {criteria}. Sentences: {json}";
+        "Please provide the output in JSON format. Json model must be the next: {\"translations\": [{\"translation_id\": \"21\",\"quality_score\": 8.5}]}. The output will be used programmatically, so it is important to maintain the same number of elements in the array and return only valid JSON" +
+        "The score number is a score from 1 to 10 assessing the quality of the translation, considering the following criteria: {criteria}. Sentences: {json}.";
 
-    public static string BuildQualityScorePrompt(string sourceLanguage, string targetLanguage, string criteria,
+    public static string BuildQualityScorePrompt(string sourceLanguage, string targetLanguage, string? criteria,
         string json)
     {
+        criteria ??= "accuracy, fluency, consistency, style, grammar and spelling";
         return QualityScorePrompt.Replace("{source_language}", sourceLanguage)
             .Replace("{target_language}", targetLanguage).Replace("{criteria}", criteria).Replace("{json}", json);
     }

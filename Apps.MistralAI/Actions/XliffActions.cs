@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Apps.MistralAI.Constants;
 using Apps.MistralAI.Invocables;
@@ -40,9 +41,70 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
     }
     
     [Action("Get quality scores for XLIFF file", Description = "Get quality scores for XLIFF file")]
-    public async Task<ProcessXliffResponse> GetQualityScoreForXliff([ActionParameter] ProcessXliffRequest request)
+    public async Task<ProcessXliffResponse> GetQualityScoreForXliff([ActionParameter] ScoreXliffRequest request)
     {
-        throw new NotImplementedException();
+        var xliff = await DownloadXliffDocumentAsync(request.File);
+        
+        var translationUnits = await ProcessTranslationUnitsAsync(new()
+        {
+            Glossary = request.Glossary,
+            Model = request.Model,
+            Prompt = request.Prompt,
+            BucketSize = request.BucketSize,
+            FilterGlossary = true
+        }, xliff, ProcessType.Score);
+        
+        UpdateTranslationUnitTargets(translationUnits, xliff, false, ProcessType.Score);
+        
+        if (request.Threshold != null && request.Condition != null && request.State != null)
+        {
+            var filteredTUs = new List<string>();
+            switch (request.Condition)
+            {
+                case ">":
+                    filteredTUs = translationUnits.Where(x => x.QualityScore > request.Threshold).Select(x => x.TranslationId)
+                        .ToList();
+                    break;
+                case ">=":
+                    filteredTUs = translationUnits.Where(x => x.QualityScore >= request.Threshold).Select(x => x.TranslationId)
+                        .ToList();
+                    break;
+                case "=":
+                    filteredTUs = translationUnits.Where(x => x.QualityScore == request.Threshold).Select(x => x.TranslationId)
+                        .ToList();
+                    break;
+                case "<":
+                    filteredTUs = translationUnits.Where(x => x.QualityScore < request.Threshold).Select(x => x.TranslationId)
+                        .ToList();
+                    break;
+                case "<=":
+                    filteredTUs = translationUnits.Where(x => x.QualityScore <= request.Threshold).Select(x => x.TranslationId)
+                        .ToList();
+                    break;
+            }
+
+            filteredTUs.ForEach(x =>
+            {
+                var translationUnit = xliff.TranslationUnits.FirstOrDefault(tu => tu.Id == x);
+                if (translationUnit != null)
+                {
+                    var stateAttribute = translationUnit.Attributes.FirstOrDefault(x => x.Key == "state");
+                    if (!string.IsNullOrEmpty(stateAttribute.Key))
+                    {
+                        translationUnit.Attributes.Remove(stateAttribute.Key);
+                        translationUnit.Attributes.Add("state", request.State);
+                    }
+                    else
+                    {
+                        translationUnit.Attributes.Add("state", request.State);
+                    }
+                }
+            });
+        }
+        
+        await using var stream = xliff.ToStream();
+        var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
+        return new ProcessXliffResponse { File = fileReference };
     }
 
     private async Task<ProcessXliffResponse> ProcessXliffInternalAsync(ProcessXliffRequest request,
@@ -51,15 +113,15 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         var xliffDocument = await DownloadXliffDocumentAsync(request.File);
         var translationUnits = await ProcessTranslationUnitsAsync(request, xliffDocument, processType);
 
-        UpdateTranslationUnitTargets(translationUnits, xliffDocument, request.AddMissingTrailingTags);
+        UpdateTranslationUnitTargets(translationUnits, xliffDocument, request.AddMissingTrailingTags, processType);
 
-        using var stream = xliffDocument.ToStream();
+        await using var stream = xliffDocument.ToStream();
         var fileReference = await fileManagementClient.UploadAsync(stream, request.File.ContentType, request.File.Name);
         return new ProcessXliffResponse { File = fileReference };
     }
 
     private void UpdateTranslationUnitTargets(IEnumerable<TranslationEntity> translationEntities,
-        XliffDocument xliffDocument, bool? addMissingTrailingTags)
+        XliffDocument xliffDocument, bool? addMissingTrailingTags, ProcessType processType)
     {
         foreach (var translationEntity in translationEntities)
         {
@@ -70,13 +132,29 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                 continue;
             }
 
-            if (addMissingTrailingTags == true)
+            if (processType == ProcessType.Score)
             {
-                UpdateTranslationUnitWithTrailingTags(translationUnit, translationEntity.TranslatedText);
+                var attribute = translationUnit.Attributes.FirstOrDefault(x => x.Key == "extradata");
+                if (!string.IsNullOrEmpty(attribute.Key))
+                {
+                    translationUnit.Attributes.Remove(attribute.Key);
+                    translationUnit.Attributes.Add("extradata", translationEntity.QualityScore.ToString(CultureInfo.InvariantCulture));
+                }
+                else
+                {
+                    translationUnit.Attributes.Add("extradata", translationEntity.QualityScore.ToString(CultureInfo.InvariantCulture));
+                }
             }
             else
             {
-                translationUnit.Target = translationEntity.TranslatedText;
+                if (addMissingTrailingTags == true)
+                {
+                    UpdateTranslationUnitWithTrailingTags(translationUnit, translationEntity.TranslatedText);
+                }
+                else
+                {
+                    translationUnit.Target = translationEntity.TranslatedText;
+                }
             }
         }
     }
@@ -128,32 +206,72 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         return xliffDocument;
     }
 
+    private string BuildSystemPrompt(string? prompt, ProcessType processType)
+    {
+        if (processType == ProcessType.Process)
+        {
+            return PromptBuilder.BuildSystemPrompt(string.IsNullOrEmpty(prompt));
+        }
+
+        if (processType == ProcessType.PostEdit)
+        {
+            return PromptBuilder.GetPostEditPrompt();
+        }
+
+        if (processType == ProcessType.Score)
+        {
+            return PromptBuilder.DefaultSystemPrompt;
+        }
+
+        throw new Exception($"Unexpected operation occured. Process type: {processType.ToString()}");
+    }
+
+    private UserPromptWithJsonModel BuildUserPrompt(string? prompt, string sourceLanguage, string targetLanguage,
+        List<TranslationUnit> translationUnits, ProcessType processType)
+    {
+        if (processType == ProcessType.Process)
+        {
+            var list = translationUnits.Select(x => new { x.Id, x.Source }).ToList();
+            var json = JsonConvert.SerializeObject(list);
+            var userPrompt = PromptBuilder.BuildUserPrompt(prompt, sourceLanguage, targetLanguage, json);
+            return new (userPrompt, json);
+        }
+
+        if (processType == ProcessType.PostEdit)
+        {
+            var list = translationUnits.Select(x => new { x.Id, x.Source, x.Target }).ToList();
+            var json = JsonConvert.SerializeObject(list);
+            var userPrompt =  PromptBuilder.BuildPostEditUserPrompt(prompt, sourceLanguage, targetLanguage, json);
+            return new (userPrompt, json);
+        }
+
+        if (processType == ProcessType.Score)
+        {
+            var list = translationUnits.Select(x => new { x.Id, x.Source, x.Target }).ToList();
+            var json = JsonConvert.SerializeObject(list);
+            var userPrompt =  PromptBuilder.BuildQualityScorePrompt(sourceLanguage, targetLanguage, prompt, json);
+            return new (userPrompt, json);
+        }
+
+        throw new Exception($"Unexpected operation occured. Process type: {processType.ToString()}");
+    }
+
     private async Task<List<TranslationEntity>> ProcessTranslationUnitsAsync(ProcessXliffRequest request,
         XliffDocument xliff, ProcessType processType)
     {
-        var systemPrompt = processType == ProcessType.Process
-            ? PromptBuilder.BuildSystemPrompt(string.IsNullOrEmpty(request.Prompt))
-            : PromptBuilder.GetPostEditPrompt();
+        var systemPrompt = BuildSystemPrompt(request.Prompt, processType);
 
         var results = new List<TranslationEntity>();
         var batches = xliff.TranslationUnits.Batch(request.GetBucketSize());
-
         foreach (var batch in batches)
         {
-            IEnumerable<object> selectedValues = processType == ProcessType.Process
-                ? batch.Select(x => new { x.Id, x.Source }).ToList()
-                : batch.Select(x => new { x.Id, x.Source, x.Target }).ToList();
-
-            var json = JsonConvert.SerializeObject(selectedValues);
-            var userPrompt = processType == ProcessType.Process
-                ? PromptBuilder.BuildUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage, json)
-                : PromptBuilder.BuildPostEditUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage,
-                    json);
+            var userPrompt = BuildUserPrompt(request.Prompt, xliff.SourceLanguage, xliff.TargetLanguage,
+                batch.ToList(), processType);
 
             if (request.Glossary != null)
             {
                 var glossaryPromptPart =
-                    await GetGlossaryPromptPart(request.Glossary, json, request.GetFilterGlossary());
+                    await GetGlossaryPromptPart(request.Glossary, userPrompt.Json, request.GetFilterGlossary());
                 if (glossaryPromptPart != null)
                 {
                     var glossaryPrompt =
@@ -162,14 +280,14 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                         "If a term has variations or synonyms, consider them and choose the most appropriate " +
                         "translation to maintain consistency and precision. ";
                     glossaryPrompt += glossaryPromptPart;
-                    userPrompt += glossaryPrompt;
+                    userPrompt.UserPrompt += glossaryPrompt;
                 }
             }
 
             var apiRequest = new CreateChatCompletionRequest
             {
                 Model = request.Model,
-                Messages = [new("assistant", systemPrompt), new("user", userPrompt)],
+                Messages = [new("assistant", systemPrompt), new("user", userPrompt.UserPrompt)],
                 ResponseFormat = new() { Type = "json_object" }
             };
 
@@ -182,7 +300,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
                 {
                     var deserializedResponse = JsonConvert.DeserializeObject<TranslationEntities>(content)!;
                     results.AddRange(deserializedResponse.Translations);
-                }, $"Failed to deserialize the response from OpenAI, try again later. Response: {content}");
+                }, $"Failed to deserialize the response from Mistral AI, try again later. Response: {content}");
         }
 
         return results;
