@@ -1,5 +1,6 @@
 ﻿using Apps.MistralAI.Constants;
 using Blackbird.Applications.Sdk.Common.Authentication;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Serialization;
@@ -50,6 +51,6 @@ public class MistralAiClient : RestClient
     
     private Exception GetError(RestResponse response)
     {
-        return new Exception($"Status code: {response.StatusCode}, Content: {response.Content}");
+        return new PluginApplicationException($"Status code: {response.StatusCode}, Content: {response.Content}");
     }
 }

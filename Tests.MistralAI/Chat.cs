@@ -1,4 +1,6 @@
 ﻿using Apps.MistralAI.Actions;
+using Apps.MistralAI.Models.Requests;
+using Blackbird.Applications.Sdk.Common.Files;
 using FluentAssertions;
 using Tests.MistralAI.Base;
 
@@ -22,5 +24,22 @@ public class Chat : TestBase
         
         result.Content.Should().NotBeNullOrEmpty();
         result.Usage.Should().NotBeNull();
+    }
+
+
+    [TestMethod]
+    public async Task ExtractTextReturnsNotNullResponse()
+    {
+        var actions = new OCRActions(InvocationContext,FileManager);
+        //var file = new FileReference { Name = "test1.jpg", ContentType= "image/jpeg" };
+        var file = new FileReference { Name = "test.pdf", ContentType = "application/pdf" };
+        var input = new FileInput 
+        { 
+           File = file
+        };
+        var result = await actions.ExtractTextFromImage(input);
+
+        Console.WriteLine(result.RawJson);
+
     }
 }
