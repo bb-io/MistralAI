@@ -13,7 +13,7 @@ public class ModelsDataHandler(InvocationContext invocationContext)
     public async Task<Dictionary<string, string>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
     {
         string endpoint = ApiEndpoints.Models;
-        var response = await Client.ExecuteWithJson<GetModelsResponse>(endpoint, Method.Get, null, Creds);
+        var response = await Client.ExecuteWithJson<GetModelsResponse>(endpoint, Method.Get, null);
         
         return response.Data
             .Where(x => context.SearchString == null ||

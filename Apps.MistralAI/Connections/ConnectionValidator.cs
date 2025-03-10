@@ -7,21 +7,24 @@ using RestSharp;
 namespace Apps.MistralAI.Connections;
 
 public class ConnectionValidator : IConnectionValidator
-{
-    private readonly MistralAiClient _client = new();
-    
+{    
     public async ValueTask<ConnectionValidationResponse> ValidateConnection(
         IEnumerable<AuthenticationCredentialsProvider> authenticationCredentialsProviders,
         CancellationToken cancellationToken)
     {
         try
         {
-            await _client.ExecuteRequest(new MistralAiRequest(new()
-            {
-                Url = ApiConstants.BaseUrl + ApiEndpoints.Models,
-                Method = Method.Get
-            }, authenticationCredentialsProviders.ToArray()));
+            var client = new MistralAiClient(authenticationCredentialsProviders);
+            var response = await client.ExecuteRequest(new RestRequest(ApiConstants.BaseUrl + ApiEndpoints.Models, Method.Get));
             
+            if (!response.IsSuccessStatusCode)
+            {
+                return new()
+                {
+                    IsValid = false,
+                    Message = response.ErrorMessage
+                };
+            }
             return new() { IsValid = true };
         }
         catch (Exception e)
