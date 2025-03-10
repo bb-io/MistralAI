@@ -1,4 +1,5 @@
-﻿using Apps.MistralAI.Api;
+﻿using System.Text;
+using Apps.MistralAI.Api;
 using Apps.MistralAI.Constants;
 using Apps.MistralAI.Invocables;
 using Apps.MistralAI.Models.Requests;
@@ -9,6 +10,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.Sdk.Utils.Extensions.Files;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using RestSharp;
 
 namespace Apps.MistralAI.Actions
@@ -58,9 +60,27 @@ namespace Apps.MistralAI.Actions
             // "JSON data file"
             // Content file (.md) -> get all the different markdown segments and 
 
+            var jsonObj = JObject.Parse(rawJson);
+            var pages = jsonObj["pages"] as JArray;
+            var markdownSegments = pages?.Select(p => p["markdown"]?.ToString() ?? "").ToArray();
+            var concatenatedMarkdown = markdownSegments != null
+                ? string.Join("\n//\n", markdownSegments)
+                : string.Empty;
+
+            var jsonBytes = Encoding.UTF8.GetBytes(rawJson);
+            using var jsonStream = new MemoryStream(jsonBytes);
+            var uploadedJsonFile = await fileManagementClient.UploadAsync(
+                jsonStream,"application/json","jsonDataFile.json");
+
+            var markdownBytes = Encoding.UTF8.GetBytes(concatenatedMarkdown);
+            using var markdownStream = new MemoryStream(markdownBytes);
+            var uploadedMarkdownFile = await fileManagementClient.UploadAsync(
+                markdownStream, "text/markdown", "contentFile.md");
+
             return new ExtractTextFromImageResult
             {
-                RawJson = rawJson
+                JsonDataFile = uploadedJsonFile,
+                ContentFile = uploadedMarkdownFile
             };
         }
     }

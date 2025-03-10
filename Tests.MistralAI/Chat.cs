@@ -39,7 +39,8 @@ public class Chat : TestBase
         };
         var result = await actions.ExtractTextFromImage(input);
 
-        Console.WriteLine(result.RawJson);
+        Assert.IsNotNull(result);
+        //Console.WriteLine(result.RawJson);
 
     }
 }
