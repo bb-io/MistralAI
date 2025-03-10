@@ -47,15 +47,16 @@ namespace Apps.MistralAI.Actions
                 document = documentObj
             };
 
-            var client = new MistralAiClient();
-            var response = await client.ExecuteWithJson<object>(
+            var response = await Client.ExecuteWithJson<object>(
                 ApiEndpoints.Document,
                 Method.Post,
-                requestBody,
-                InvocationContext.AuthenticationCredentialsProviders.ToArray()
+                requestBody
             );
 
             var rawJson = JsonConvert.SerializeObject(response);
+
+            // "JSON data file"
+            // Content file (.md) -> get all the different markdown segments and 
 
             return new ExtractTextFromImageResult
             {

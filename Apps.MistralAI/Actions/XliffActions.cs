@@ -295,7 +295,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
 
             var response =
                 await Client.ExecuteWithJson<SendChatCompletionsResponse>(ApiEndpoints.Chat + ApiEndpoints.Completions,
-                    Method.Post, apiRequest, Creds);
+                    Method.Post, apiRequest);
             
             usage += response.Usage;
 

@@ -14,6 +14,6 @@ public class AppInvocable : BaseInvocable
     
     public AppInvocable(InvocationContext invocationContext) : base(invocationContext)
     {
-        Client = new();
+        Client = new(Creds);
     }
 }

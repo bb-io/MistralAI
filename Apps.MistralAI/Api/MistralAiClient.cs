@@ -10,22 +10,21 @@ namespace Apps.MistralAI.Api;
 
 public class MistralAiClient : RestClient
 {
-    public async Task<T> ExecuteWithJson<T>(string endpoint, Method method, object? bodyObj,
-        AuthenticationCredentialsProvider[] creds)
+    public MistralAiClient(IEnumerable<AuthenticationCredentialsProvider> creds)
     {
-        var response = await ExecuteWithJson(endpoint, method, bodyObj, creds);
+        var token = creds.First(x => x.KeyName == CredsNames.ApiKey).Value;
+        this.AddDefaultHeader("Authorization", $"Bearer {token}");
+    }
+
+    public async Task<T> ExecuteWithJson<T>(string endpoint, Method method, object? bodyObj)
+    {
+        var response = await ExecuteWithJson(endpoint, method, bodyObj);
         return JsonConvert.DeserializeObject<T>(response.Content);
     }
 
-    private async Task<RestResponse> ExecuteWithJson(string endpoint, Method method, object? bodyObj,
-        AuthenticationCredentialsProvider[] creds)
+    private async Task<RestResponse> ExecuteWithJson(string endpoint, Method method, object? bodyObj)
     {
-        var request = new MistralAiRequest(new()
-        {
-            Url = ApiConstants.BaseUrl + endpoint,
-            Method = method
-        }, creds);
-
+        var request = new RestRequest(ApiConstants.BaseUrl + endpoint, method);
         if (bodyObj is not null)
             request.WithJsonBody(bodyObj, new()
             {
@@ -39,7 +38,7 @@ public class MistralAiClient : RestClient
         return await ExecuteRequest(request);
     }
     
-    public async Task<RestResponse> ExecuteRequest(MistralAiRequest request)
+    public async Task<RestResponse> ExecuteRequest(RestRequest request)
     {
         var response = await ExecuteAsync(request);
 

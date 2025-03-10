@@ -14,6 +14,7 @@ public class Validator : TestBase
         var validator = new ConnectionValidator();
 
         var result = await validator.ValidateConnection(Creds, CancellationToken.None);
+        Console.WriteLine(result.Message);
         result.IsValid.Should().Be(true);
     }
 
@@ -24,6 +25,7 @@ public class Validator : TestBase
 
         var newCreds = Creds.Select(x => new AuthenticationCredentialsProvider(x.KeyName, x.Value + "_incorrect"));
         var result = await validator.ValidateConnection(newCreds, CancellationToken.None);
+        Console.WriteLine(result.Message);
         result.IsValid.Should().Be(false);
     }
 }
