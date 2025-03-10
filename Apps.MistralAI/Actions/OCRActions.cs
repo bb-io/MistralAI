@@ -57,9 +57,6 @@ namespace Apps.MistralAI.Actions
 
             var rawJson = JsonConvert.SerializeObject(response);
 
-            // "JSON data file"
-            // Content file (.md) -> get all the different markdown segments and 
-
             var jsonObj = JObject.Parse(rawJson);
             var pages = jsonObj["pages"] as JArray;
             var markdownSegments = pages?.Select(p => p["markdown"]?.ToString() ?? "").ToArray();
