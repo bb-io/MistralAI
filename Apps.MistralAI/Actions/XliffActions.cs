@@ -19,6 +19,8 @@ using Blackbird.Xliff.Utils.Models;
 using MoreLinq;
 using Newtonsoft.Json;
 using RestSharp;
+using Blackbird.Applications.Sdk.Common.Exceptions;
+using Newtonsoft.Json.Linq;
 
 namespace Apps.MistralAI.Actions;
 
@@ -201,7 +203,7 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
         var xliffDocument = xliffMemoryStream.ToXliffDocument();
         if (xliffDocument.TranslationUnits.Count == 0)
         {
-            throw new InvalidOperationException("The XLIFF file does not contain any translation units.");
+            throw new PluginApplicationException("The XLIFF file does not contain any translation units.");
         }
 
         return xliffDocument;
@@ -302,8 +304,26 @@ public class XliffActions(InvocationContext invocationContext, IFileManagementCl
             var content = response.Choices.First().Message.Content;
             TryCatchHelper.TryCatch(() =>
                 {
-                    var deserializedResponse = JsonConvert.DeserializeObject<TranslationEntities>(content)!;
-                    results.AddRange(deserializedResponse.Translations);
+                    var jToken = JToken.Parse(content);
+
+                    JArray array;
+                    if (jToken.Type == JTokenType.Array)
+                    {
+                        array = (JArray)jToken;
+                    }
+                    else if (jToken.Type == JTokenType.Object && jToken["translations"] is JArray arr)
+                    {
+                        array = arr;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Unknown format response from API");
+                    }
+
+                    var list = array.ToObject<List<TranslationEntity>>()
+                               ?? throw new InvalidOperationException("Empty array of translation units");
+
+                    results.AddRange(list);
                 }, $"Failed to deserialize the response from Mistral AI, try again later. Response: {content}");
         }
 
