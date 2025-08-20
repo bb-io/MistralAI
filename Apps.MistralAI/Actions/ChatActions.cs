@@ -9,7 +9,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 
 namespace Apps.MistralAI.Actions;
 
-[ActionList]
+[ActionList("Chat")]
 public class ChatActions(InvocationContext invocationContext) : AppInvocable(invocationContext)
 {
     [Action("Send prompt", Description = "Send a prompt to the ai model and return the response")]

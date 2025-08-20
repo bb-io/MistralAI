@@ -24,7 +24,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Apps.MistralAI.Actions;
 
-[ActionList]
+[ActionList("XLIFF")]
 public class XliffActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
     : AppInvocable(invocationContext)
 {
