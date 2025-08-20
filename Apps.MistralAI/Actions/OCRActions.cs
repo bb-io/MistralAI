@@ -15,7 +15,7 @@ using RestSharp;
 
 namespace Apps.MistralAI.Actions
 {
-    [ActionList]
+    [ActionList("OCR")]
     public class OCRActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
     : AppInvocable(invocationContext)
     {
