@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Apps.MistralAI.Utils;
 
 namespace Apps.MistralAI.Models.Requests;
 
@@ -36,7 +37,7 @@ public class CreateChatCompletionRequest
         Model = request.Model;
         Temperature = request.Temperature;
         TopP = request.TopP;
-        MaxTokens = request.MaxTokens;
+        MaxTokens = request.MaxTokens ?? ModelTokenService.GetMaxTokensForModel(request.Model);
         SafePrompt = request.SafePrompt;
         RandomSeed = request.RandomSeed;
         
