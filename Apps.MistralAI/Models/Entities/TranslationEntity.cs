@@ -4,12 +4,12 @@ namespace Apps.MistralAI.Models.Entities;
 
 public class TranslationEntity
 {
-    [JsonProperty("translation_id")]
+    [JsonProperty("translationId")]
     public string TranslationId { get; set; } = string.Empty;
 
-    [JsonProperty("translated_text")]
+    [JsonProperty("translatedText")]
     public string TranslatedText { get; set; } = string.Empty;
-    
-    [JsonProperty("quality_score")]
+
+    [JsonProperty("qualityScore")]
     public float QualityScore { get; set; }
 }
