@@ -1,0 +1,40 @@
+﻿using Apps.MistralAI.DataSourceHandlers;
+using Apps.MistralAI.DataSourceHandlers.Static;
+using Tests.MistralAI.Base;
+
+namespace Tests.MistralAI
+{
+    [TestClass]
+    public class DataHandlerTests : TestBase
+    {
+        [TestMethod]
+        public async Task DataHandler_UploadFile_Test()
+        {
+            var dataHandler = new ModelsDataHandler(InvocationContext);
+
+            var response = await dataHandler.GetDataAsync(new Blackbird.Applications.Sdk.Common.Dynamic.DataSourceContext { }, CancellationToken.None);
+
+            foreach (var item in response)
+            {
+                Console.WriteLine($"{item.Key} : {item.Value}");
+            }
+
+            Assert.IsNotNull(response);
+        }
+
+        [TestMethod]
+        public async Task LocaleDataSourceHandler_IsSuccess()
+        {
+            var dataHandler = new LocaleDataSourceHandler();
+
+            var response = dataHandler.GetData(new Blackbird.Applications.Sdk.Common.Dynamic.DataSourceContext { });
+
+            foreach (var item in response)
+            {
+                Console.WriteLine($"{item.DisplayName} : {item.Value}");
+            }
+
+            Assert.IsNotNull(response);
+        }
+    }
+}
