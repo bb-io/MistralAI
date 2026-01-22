@@ -47,7 +47,7 @@ namespace Apps.MistralAI.Actions
 
             var segments = content.GetUnits()
                 .SelectMany(u => u.Segments)
-                .Where(s => !s.IsIgnorbale && s.State == SegmentState.Translated)
+                .Where(s => s.State == SegmentState.Translated)
                 .ToList();
 
             result.TotalSegmentsReviewed = segments.Count;

@@ -10,6 +10,7 @@ using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Blueprints;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Filters.Constants;
+using Blackbird.Filters.Enums;
 using Blackbird.Filters.Extensions;
 using Blackbird.Filters.Transformations;
 using Blackbird.Filters.Xliff.Xliff1;
@@ -86,7 +87,7 @@ namespace Apps.MistralAI.Actions
 
             var segments = content.GetUnits()
                 .SelectMany(u => u.Segments)
-                .Where(s => !s.IsIgnorbale && !string.IsNullOrWhiteSpace(s.GetTarget()))
+                .Where(s => s.State != SegmentState.Final)
                 .ToList();
 
 
@@ -119,7 +120,7 @@ namespace Apps.MistralAI.Actions
                     Messages =
                     [
                         new("assistant", systemPrompt),
-                    new("user", userPrompt)
+                        new("user", userPrompt)
                     ],
                     ResponseFormat = new() { Type = "json_object" },
                     MaxTokens = input.MaxTokens,
@@ -145,7 +146,10 @@ namespace Apps.MistralAI.Actions
                 totalScore += qualityScore;
 
                 if (qualityScore >= 0.8f)
+                {
                     finalizedSegments++;
+                    segment.State = SegmentState.Final;
+                }
 
                 if (qualityScore < 0.6f)
                     underThresholdSegments++;
