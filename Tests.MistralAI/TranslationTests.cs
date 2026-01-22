@@ -7,7 +7,7 @@ namespace Tests.MistralAI
     public class TranslationTests : TestBase
     {
         [TestMethod]
-        public async Task TranslateText_Test()
+        public async Task TranslateText_IsSuccess()
         {
             var action = new TranslationActions(InvocationContext, FileManager);
             var request = new Apps.MistralAI.Models.Requests.TranslateTextRequest
@@ -22,14 +22,14 @@ namespace Tests.MistralAI
         }
 
         [TestMethod]
-        public async Task TranslateContent_Test()
+        public async Task TranslateContent_IsSuccess()
         {
             var action = new TranslationActions(InvocationContext, FileManager);
             var request = new Apps.MistralAI.Models.Requests.TranslateContentRequest
             {
                 File= new Blackbird.Applications.Sdk.Common.Files.FileReference
                 {
-                    Name = "Boost the output and quality of your existing localization tools-en-it-TRA (1).mxliff"
+                    Name = "Boost the output and quality of your existing localization tools-en-it-TRA.mxliff"
                 },
                 Model = "mistral-large-latest",
                 TargetLanguage = "it"

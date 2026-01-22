@@ -1,29 +1,27 @@
 ﻿using Apps.MistralAI.Constants;
-using Apps.MistralAI.DataSourceHandlers;
+using Apps.MistralAI.Invocables;
+using Apps.MistralAI.Models.Entities;
 using Apps.MistralAI.Models.Requests;
 using Apps.MistralAI.Models.Responses;
+using Apps.MistralAI.Utils;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.SDK.Blueprints;
-using Blackbird.Applications.Sdk.Common.Dynamic;
-using Blackbird.Applications.Sdk.Common.Files;
-using RestSharp;
-using System.Text;
-using Apps.MistralAI.Models.Entities;
-using Apps.MistralAI.Utils;
-using Newtonsoft.Json.Linq;
 using Blackbird.Applications.Sdk.Common.Exceptions;
-using System.Text.RegularExpressions;
-using Apps.MistralAI.Invocables;
+using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.Sdk.Common.Invocation;
-using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Applications.Sdk.Glossaries.Utils.Converters;
-using Newtonsoft.Json;
-using Blackbird.Filters.Xliff.Xliff1;
+using Blackbird.Applications.SDK.Blueprints;
+using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
 using Blackbird.Filters.Constants;
 using Blackbird.Filters.Enums;
-using Blackbird.Filters.Transformations;
 using Blackbird.Filters.Extensions;
+using Blackbird.Filters.Transformations;
+using Blackbird.Filters.Xliff.Xliff1;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using RestSharp;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Apps.MistralAI.Actions
 {
@@ -215,7 +213,6 @@ namespace Apps.MistralAI.Actions
 
             return result;
         }
-
 
         //helpers
         private static string BuildSystemPromptForFile(string? sourceLang, string? targetLang, string? extra)
