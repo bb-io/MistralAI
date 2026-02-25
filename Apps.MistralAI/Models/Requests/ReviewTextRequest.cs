@@ -1,6 +1,7 @@
 ﻿using Apps.MistralAI.DataSourceHandlers;
 using Apps.MistralAI.DataSourceHandlers.Static;
 using Blackbird.Applications.Sdk.Common;
+using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.Sdk.Common.Dynamic;
 using Blackbird.Applications.Sdk.Common.Files;
 using Blackbird.Applications.SDK.Blueprints.Interfaces.Review;
@@ -38,7 +39,7 @@ namespace Apps.MistralAI.Models.Requests
         public int? MaxTokens { get; set; }
 
         [Display("Temperature", Description = "Amount of randomness injected into the response.")]
-        [DataSource(typeof(TemperatureDataSourceHandler))]
+        [StaticDataSource(typeof(TemperatureDataSourceHandler))]
         [JsonProperty("temperature")]
         public string? Temperature { get; set; }
 

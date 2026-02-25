@@ -41,7 +41,7 @@ namespace Apps.MistralAI.Models.Requests
         public int? MaxTokens { get; set; }
 
         [Display("Temperature", Description = "Amount of randomness injected into the response.")]
-        [DataSource(typeof(TemperatureDataSourceHandler))]
+        [StaticDataSource(typeof(TemperatureDataSourceHandler))]
         [JsonProperty("temperature")]
         public string? Temperature { get; set; }
 
