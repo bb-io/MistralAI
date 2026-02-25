@@ -14,12 +14,12 @@ public class ModelsDataHandler(InvocationContext invocationContext)
     {
         string endpoint = ApiEndpoints.Models;
         var response = await Client.ExecuteWithJson<GetModelsResponse>(endpoint, Method.Get, null);
-        
+
         return response.Data
             .Where(x => context.SearchString is null ||
                         x.Id.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
-            .Take(20)
             .DistinctBy(x => x.Id)
+            .Take(20)
             .ToDictionary(x => x.Id.ToString(), x => x.Id);
     }
 }
