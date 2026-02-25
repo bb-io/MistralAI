@@ -8,9 +8,9 @@ using RestSharp;
 namespace Apps.MistralAI.DataSourceHandlers;
 
 public class AudioModelsDataHandler(InvocationContext invocationContext)
-    : AppInvocable(invocationContext), IAsyncDataSourceHandler
+    : AppInvocable(invocationContext), IAsyncDataSourceItemHandler
 {
-    public async Task<Dictionary<string, string>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
+    public async Task<IEnumerable<DataSourceItem>> GetDataAsync(DataSourceContext context, CancellationToken cancellationToken)
     {
         var response = await Client.ExecuteWithJson<GetModelsResponse>(ApiEndpoints.Models, Method.Get, null);
 
@@ -21,6 +21,6 @@ public class AudioModelsDataHandler(InvocationContext invocationContext)
                         (context.SearchString is null || x.Id.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase)))
             .DistinctBy(x => x.Id)
             .Take(20)
-            .ToDictionary(x => x.Id.ToString(), x => x.Id);
+            .Select(x => new DataSourceItem(x.Id, x.Id));
     }
 }
