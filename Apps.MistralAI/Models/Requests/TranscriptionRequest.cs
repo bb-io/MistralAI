@@ -13,7 +13,7 @@ namespace Apps.MistralAI.Models.Requests
         public required FileReference File { get; set; }
         
         [Display("Model")]
-        [DataSource(typeof(ModelsDataHandler))]
+        [DataSource(typeof(AudioModelsDataHandler))]
         public required string Model { get; set; }      
         
         [Display("Source language", Description = "Optional. If not set, Mistral will infer it from the content.")]
