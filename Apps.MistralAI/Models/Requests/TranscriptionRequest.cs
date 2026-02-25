@@ -16,8 +16,8 @@ namespace Apps.MistralAI.Models.Requests
         [DataSource(typeof(AudioModelsDataHandler))]
         public required string Model { get; set; }      
         
-        [Display("Source language", Description = "Optional. If not set, Mistral will infer it from the content.")]
-        [DataSource(typeof(LocaleDataSourceHandler))]
+        [Display("Source language (ISO 639-1)", Description = "Optional. If not set, Mistral will infer it from the content.")]
+        [StaticDataSource(typeof(IsoLanguageDataSourceHandler))]
         public string? SourceLanguage { get; set; }
 
         [Display("Temperature")]
