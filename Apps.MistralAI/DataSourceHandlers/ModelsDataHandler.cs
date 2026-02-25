@@ -16,9 +16,10 @@ public class ModelsDataHandler(InvocationContext invocationContext)
         var response = await Client.ExecuteWithJson<GetModelsResponse>(endpoint, Method.Get, null);
         
         return response.Data
-            .Where(x => context.SearchString == null ||
+            .Where(x => context.SearchString is null ||
                         x.Id.Contains(context.SearchString, StringComparison.OrdinalIgnoreCase))
             .Take(20)
+            .DistinctBy(x => x.Id)
             .ToDictionary(x => x.Id.ToString(), x => x.Id);
     }
 }
