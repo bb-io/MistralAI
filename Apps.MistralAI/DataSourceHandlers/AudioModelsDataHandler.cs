@@ -14,7 +14,7 @@ public class AudioModelsDataHandler(InvocationContext invocationContext)
     {
         var response = await Client.ExecuteWithJson<GetModelsResponse>(ApiEndpoints.Models, Method.Get, null);
 
-        const string audioModelFilter = "voxtral";
+        const string audioModelFilter = "voxtral-mini";
 
         return response.Data
             .Where(x => x.Id.Contains(audioModelFilter) &&
