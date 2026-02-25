@@ -66,5 +66,35 @@ namespace Tests.MistralAI
 
             Assert.IsNotNull(response);
         }
+
+        [TestMethod]
+        public async Task AudioModelsDataHandler_IsSuccess()
+        {
+            var dataHandler = new AudioModelsDataHandler(InvocationContext);
+
+            var response = await dataHandler.GetDataAsync(new Blackbird.Applications.Sdk.Common.Dynamic.DataSourceContext { }, CancellationToken.None);
+
+            foreach (var item in response)
+            {
+                Console.WriteLine($"{item.Key} : {item.Value}");
+            }
+
+            Assert.IsNotNull(response);
+        }
+
+        [TestMethod]
+        public async Task AudioModelsDataHandler_WithSearchString_IsSuccess()
+        {
+            var dataHandler = new AudioModelsDataHandler(InvocationContext);
+
+            var response = await dataHandler.GetDataAsync(new Blackbird.Applications.Sdk.Common.Dynamic.DataSourceContext { SearchString = "mini" }, CancellationToken.None);
+
+            foreach (var item in response)
+            {
+                Console.WriteLine($"{item.Key} : {item.Value}");
+            }
+
+            Assert.IsNotNull(response);
+        }
     }
 }
