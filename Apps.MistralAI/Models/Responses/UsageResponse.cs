@@ -17,6 +17,10 @@ public class UsageResponse
     [JsonProperty("total_tokens")]
     public int TotalTokens { get; set; }
 
+    [Display("Prompt audio seconds")]
+    [JsonProperty("prompt_audio_seconds")]
+    public int? PromptAudioSeconds { get; set; }
+
     public static UsageResponse operator +(UsageResponse u1, UsageResponse u2)
     {
         return new UsageResponse
@@ -24,6 +28,7 @@ public class UsageResponse
             PromptTokens = u1.PromptTokens + u2.PromptTokens,
             CompletionTokens = u1.CompletionTokens + u2.CompletionTokens,
             TotalTokens = u1.TotalTokens + u2.TotalTokens,
+            PromptAudioSeconds = u1.PromptAudioSeconds + u2.PromptAudioSeconds
         };
     }
 }    

@@ -1,4 +1,5 @@
 ﻿using Apps.MistralAI.Constants;
+using Apps.MistralAI.Models.Entities;
 using Blackbird.Applications.Sdk.Common.Authentication;
 using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Utils.Extensions.Http;
@@ -50,6 +51,19 @@ public class MistralAiClient : RestClient
     
     private Exception GetError(RestResponse response)
     {
+        try
+        {
+            var errorModel = JsonConvert.DeserializeObject<ErrorModel>(response.Content);
+            if (errorModel?.Message is not null)
+            {
+                return new PluginApplicationException(errorModel?.Message!);
+            }
+        }
+        catch
+        {
+            return new PluginApplicationException($"Status code: {response.StatusCode}, Content: {response.Content}");
+        }
+
         return new PluginApplicationException($"Status code: {response.StatusCode}, Content: {response.Content}");
     }
 }

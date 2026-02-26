@@ -20,12 +20,11 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ## Connecting 
 
-1. Navigate to apps and search for Mistral. If you cannot find Mistral, then click _Add App_ in the top right corner, select Contentstack, and add the app to your Blackbird environment.
-2. Click _Add Connection_.
-3. Name your connection for future reference, e.g., 'My client'.
-4. In the _API Key_ field, input your API Key. You can get it from [here](https://console.mistral.ai/api-keys/).
-5. Click _Connect_.
-6. Confirm that the connection has appeared and the status is _Connected_.
+1. Click _Add Connection_.
+2. Name your connection for future reference, e.g., 'My client'.
+3. In the _API Key_ field, input your API Key. You can get it from [here](https://console.mistral.ai/api-keys/).
+4. Click _Connect_.
+5. Confirm that the connection has appeared and the status is _Connected_.
 
 ![MistralAIConnection](image/README/MistralAIConnection.png)
 
@@ -39,36 +38,25 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 - **Extract text from image or PDF** Extracts text from a PDF or image file using Mistral AI OCR service.
 
-### XLIFF
+### Audio
+- **Create transcription**: generates a transcription given an audio (mp3, mpeg, mpga, m4a, wav, or webm).
 
-All XLIFF actions supports 1.2 and 2.1 versions of the XLIFF format, since these are the most common versions used in the industry, but if you need support for other versions, please reach out to us and we will consider adding support for them.
+### Translation
 
-- **Get Quality Scores for XLIFF file** Gets segment and file level quality scores for XLIFF files. Optionally, you can add Threshold, New Target State and Condition input parameters to the Blackbird action to change the target state value of segments meeting the desired criteria (all three must be filled).
+- **Translate** translate file content retrieved from a CMS or file storage. The output can be used in compatible Blackbird interoperable actions.
+- **Translate text** given a text and a locale, tries to create a localized version of the text.
 
-  Optional inputs:
-    - Prompt: Add your criteria for scoring each source-target pair. If none are provided, this is replaced by _"accuracy, fluency, consistency, style, grammar and spelling"_.
-    - Bucket size: Amount of translation units to process in the same request. (See dedicated section)
-    - Threshold: value between 0-10.
-    - Condition: Criteria to filter segments whose target state will be modified.
-    - New Target State: value to update target state to for filtered translation units.
+### Editing
 
-  Output:
-    - Average Score: aggregated score of all segment level scores.
-    - Updated XLIFF file: segment level score added to extradata attribute & updated target state when instructed.
+- **Edit** Edit a translation. This action assumes you have previously translated content in Blackbird through any translation action. Only looks at translated segments and will change the segment state to reviewed.
+- **Edit Text** given a source segment and translated target segment, responds with an edited version of the target segment taking into account typical mistakes.
 
-- **Post-edit XLIFF file** Updates the targets of XLIFF files
+### Review
 
-Optional inputs:
-- Prompt: Add your linguistic criteria for postediting targets.
-- Bucket size: Amount of translation units to process in the same request. (See dedicated section)
-- Glossary
-- Add missing trailing tags: If true, missing trailing tags will be added to the target segment.
+- **Review** reviews a translation. This action assumes you have previously translated content in Blackbird through any translation action. Adds a quality score to each unit in the file.
+- **Review text** reviews a single text and returns a quality score.
 
-> The Prompt used in this actions is "Your input consists of sentences in `source` language with their translations into `target language`. Review and edit the translated target text as necessary to ensure it is a correct and accurate translation of the source text. If you encounter XML tags in the source also include them in the target text, don't delete or modify them." By using the "Prompt" optional input, your instructions will be appended to the prompt.
-
-- **Process XLIFF file** given an XLIFF file, processes each translation unit according to provided instructions in the optional input "Prompt" (if no Prompt is provided, the source texts will be translated) and updates the target text for each unit.
-
-> Whenever a Glossary is added as optional input for any of the above described actions, the Prompt used is "Enhance the target text by incorporating relevant terms from our glossary where applicable. Ensure that the translation aligns with the glossary entries for the respective languages. If a term has variations or synonyms, consider them and choose the most appropriate translation to maintain consistency and precision."
+> Note: files are interoperable, under the hood Blackbird may convert to and from bilingual files with metadata but all our Actions are able to accept a lot of different file formats.
 
 ## Example
 
