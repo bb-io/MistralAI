@@ -16,7 +16,7 @@ namespace Tests.MistralAI
 
             foreach (var item in response)
             {
-                Console.WriteLine($"{item.Key} : {item.Value}");
+                Console.WriteLine($"{item.DisplayName} : {item.Value}");
             }
 
             Assert.IsNotNull(response);
@@ -31,7 +31,7 @@ namespace Tests.MistralAI
 
             foreach (var item in response)
             {
-                Console.WriteLine($"{item.Key} : {item.Value}");
+                Console.WriteLine($"{item.DisplayName} : {item.Value}");
             }
 
             Assert.IsNotNull(response);
