@@ -64,7 +64,7 @@ namespace Apps.MistralAI.Actions
                 TargetText = input.TargetText,
                 SourceLanguage = input.SourceLanguage,
                 TargetLanguage = input.TargetLanguage,
-                AdditionalInstructions = Instructions(input),
+                AdditionalInstructions = Instructions(input.TargetAudience, input.AdditionalInstructions),
                 GlossaryTbx = glossaryFile
             }));
 
@@ -77,19 +77,6 @@ namespace Apps.MistralAI.Actions
                 UserPrompt = UserPrompt(result.Content),
                 Usage = ToUsage(result.Content.Usage)
             };
-        }
-
-        private static string? Instructions(EditTextRequest input)
-        {
-            var audience = string.IsNullOrWhiteSpace(input.TargetAudience)
-                ? null
-                : $"The target audience is {input.TargetAudience.Trim()}.";
-
-            var instructions = new[] { audience, input.AdditionalInstructions }
-                .Where(part => !string.IsNullOrWhiteSpace(part))
-                .ToList();
-
-            return instructions.Count > 0 ? string.Join(Environment.NewLine, instructions) : null;
         }
     }
 }

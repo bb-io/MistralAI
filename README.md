@@ -56,6 +56,16 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 - **Review** reviews a translation. This action assumes you have previously translated content in Blackbird through any translation action. Adds a quality score to each translated or reviewed segment and sets segments scoring at or above the _Score threshold_ (default 0.8) to final.
 - **Review text** reviews a single text and returns a quality score.
 
+### Shortening
+
+- **Shorten content** shortens translated file content so every unit fits its size restriction from the file, or the _Maximum length_ for units without one. Texts that are still too long are sent again, up to the number of _Retries_ (default 3). Units that never fit are left unchanged.
+- **Shorten text** shortens a single text to the _Maximum length_.
+
+### Summarizing
+
+- **Summarize** summarizes file content. Translated content is summarized from its translation, untranslated content from its source. Optionally set the _Language_, _Maximum words_ and _Target audience_.
+- **Summarize text** summarizes a single text with the same options.
+
 > Note: files are interoperable, under the hood Blackbird may convert to and from bilingual files with metadata but all our Actions are able to accept a lot of different file formats.
 
 ## Example

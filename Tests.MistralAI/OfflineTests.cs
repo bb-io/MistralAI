@@ -46,6 +46,25 @@ namespace Tests.MistralAI
             Assert.IsTrue(_loggedWarnings.Count > 0);
         }
 
+        [TestMethod]
+        public async Task ShortenText_NeverFits_Throws()
+        {
+            var exception = await Assert.ThrowsExceptionAsync<PluginApplicationException>(() =>
+                new FixedAnswerShortenActions(Context(), _files, """{"translations":[{"translation_id":"1","translated_text":"Still a sentence that is far too long."}]}""").ShortenText(
+                    new ShortenTextRequest { Model = "mistral-large-latest", Text = "A sentence that is definitely far too long.", MaximumLength = 10, Retries = 1 }));
+
+            Console.WriteLine(exception.Message);
+            Assert.IsTrue(_loggedWarnings.Count > 0);
+        }
+
+        [TestMethod]
+        public async Task ShortenText_NonPositiveMaximumLength_Throws()
+        {
+            await Assert.ThrowsExceptionAsync<PluginMisconfigurationException>(() =>
+                new FixedAnswerShortenActions(Context(), _files, "unused").ShortenText(
+                    new ShortenTextRequest { Model = "mistral-large-latest", Text = "Text", MaximumLength = 0 }));
+        }
+
         private InvocationContext Context() => new()
         {
             AuthenticationCredentialsProviders = [new AuthenticationCredentialsProvider(CredsNames.ApiKey, "unused")],
@@ -55,15 +74,21 @@ namespace Tests.MistralAI
         private sealed class UnusableAnswerTranslationActions(InvocationContext context, IFileManagementClient files)
             : TranslationActions(context, files)
         {
-            protected override ILlmClient CreateLlmClient(string model, MistralLlmSettings settings) => new UnusableAnswerClient();
+            protected override ILlmClient CreateLlmClient(string model, MistralLlmSettings settings) => new FixedAnswerClient("not json");
         }
 
-        private sealed class UnusableAnswerClient : ILlmClient
+        private sealed class FixedAnswerShortenActions(InvocationContext context, IFileManagementClient files, string answer)
+            : ShortenActions(context, files)
+        {
+            protected override ILlmClient CreateLlmClient(string model, MistralLlmSettings settings) => new FixedAnswerClient(answer);
+        }
+
+        private sealed class FixedAnswerClient(string answer) : ILlmClient
         {
             public LlmCapabilities Capabilities { get; } = new(ContextTokens: 128_000, MaxOutputTokens: 16_384);
 
             public Task<LlmResponse> CompleteAsync(LlmRequest request, CancellationToken cancellationToken) =>
-                Task.FromResult(LlmResponse.Completed("not json", new LlmUsage(10, 2)));
+                Task.FromResult(LlmResponse.Completed(answer, new LlmUsage(10, 2)));
         }
     }
 }

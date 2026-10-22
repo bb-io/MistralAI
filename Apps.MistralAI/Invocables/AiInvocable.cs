@@ -48,6 +48,19 @@ public class AiInvocable(InvocationContext invocationContext, IFileManagementCli
     protected static string UserPrompt(ContentResult content) =>
         string.Join(Environment.NewLine, content.Traces.Select(trace => trace.UserPrompt));
 
+    protected static string? Instructions(string? targetAudience, string? additionalInstructions)
+    {
+        var audience = string.IsNullOrWhiteSpace(targetAudience)
+            ? null
+            : $"The target audience is {targetAudience.Trim()}.";
+
+        var instructions = new[] { audience, additionalInstructions }
+            .Where(part => !string.IsNullOrWhiteSpace(part))
+            .ToList();
+
+        return instructions.Count > 0 ? string.Join(Environment.NewLine, instructions) : null;
+    }
+
     protected static void ThrowIfUnresolved(ContentResult content)
     {
         if (content.UnresolvedSegments > 0)
