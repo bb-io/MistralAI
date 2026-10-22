@@ -1,75 +1,54 @@
-﻿using Apps.MistralAI.Constants;
+﻿using Apps.MistralAI.Ai;
 using Apps.MistralAI.Invocables;
 using Apps.MistralAI.Models.Requests;
 using Apps.MistralAI.Models.Responses;
-using Apps.MistralAI.Utils;
+using Blackbird.Ai.Files.Models;
+using Blackbird.Ai.Summary.Models;
+using Blackbird.Ai.Text.Models;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Actions;
-using Blackbird.Applications.Sdk.Common.Files;
+using Blackbird.Applications.Sdk.Common.Exceptions;
 using Blackbird.Applications.Sdk.Common.Invocation;
 using Blackbird.Applications.SDK.Blueprints;
 using Blackbird.Applications.SDK.Extensions.FileManagement.Interfaces;
-using Blackbird.Filters.Constants;
 using Blackbird.Filters.Enums;
-using Blackbird.Filters.Extensions;
-using Blackbird.Filters.Transformations;
-using Blackbird.Filters.Xliff.Xliff1;
-using Newtonsoft.Json;
-using RestSharp;
-using System.Globalization;
-using System.Xml.Linq;
 
 namespace Apps.MistralAI.Actions
 {
     [ActionList("Review")]
-    public class ReviewActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient) : AppInvocable(invocationContext)
+    public class ReviewActions(InvocationContext invocationContext, IFileManagementClient fileManagementClient)
+        : AiInvocable(invocationContext, fileManagementClient)
     {
         [BlueprintActionDefinition(BlueprintAction.ReviewText)]
         [Action("Review text", Description = "Review the quality of translated text.")]
         public async Task<ReviewTextResponse> ReviewText([ActionParameter] ReviewTextRequest input)
         {
-            var json = JsonConvert.SerializeObject(new
+            if (string.IsNullOrWhiteSpace(input.SourceText) || string.IsNullOrWhiteSpace(input.TargetText))
+                throw new PluginMisconfigurationException("Both the source text and the target text are required for a review.");
+
+            var client = CreateLlmClient(input.Model, MistralLlmSettings.Parse(input.Temperature, input.TopP, input.MaxTokens));
+            var processor = CreateTextProcessor(client, input.Model);
+
+            await using var glossaryFile = await DownloadOptionalAsync(input.Glossary);
+
+            var result = await AiAdapters.Mapped(() => processor.ReviewAsync(new ReviewTextOptions
             {
-                translation_id = "1",
-                source_text = input.SourceText,
-                target_text = input.TargetText
-            });
+                SourceText = input.SourceText,
+                TargetText = input.TargetText,
+                SourceLanguage = input.SourceLanguage,
+                TargetLanguage = input.TargetLanguage,
+                AdditionalInstructions = input.AdditionalInstructions,
+                GlossaryTbx = glossaryFile
+            }));
 
-            var systemPrompt = ReviewPromptBuilder.BuildReviewSystemPrompt();
-            var userPrompt = ReviewPromptBuilder.BuildReviewUserPrompt(
-                input.AdditionalInstructions,
-                input.SourceLanguage,
-                input.TargetLanguage,
-                json);
-
-            var apiRequest = new CreateChatCompletionRequest
-            {
-                Model = input.Model,
-                Messages =
-                [
-                    new("assistant", systemPrompt),
-                new("user", userPrompt)
-                ],
-                ResponseFormat = new() { Type = "json_object" },
-                Temperature = ParseNullableFloat(input.Temperature),
-                TopP = ParseNullableFloat(input.TopP),
-                MaxTokens = input.MaxTokens
-            };
-
-            var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(
-                ApiEndpoints.Chat + ApiEndpoints.Completions,
-                Method.Post,
-                apiRequest);
-
-            var raw = response.Choices.First().Message.Content;
-            var score = ReviewResponseDeserializer.DeserializeScore(raw);
+            ThrowIfUnresolved(result.Content);
 
             return new ReviewTextResponse
             {
-                Score = score,
-                SystemPrompt = systemPrompt,
-                UserPrompt = userPrompt,
-                Usage = response.Usage
+                Score = (float)(result.Score ?? throw new PluginApplicationException("The model returned no quality score.")),
+                SystemPrompt = result.Content.SystemPrompt ?? string.Empty,
+                UserPrompt = UserPrompt(result.Content),
+                Usage = ToUsage(result.Content.Usage)
             };
         }
 
@@ -77,127 +56,44 @@ namespace Apps.MistralAI.Actions
         [Action("Review", Description = "Review translation. Assumes you have previously translated content in Blackbird through any translation action.")]
         public async Task<ReviewFileResponse> ReviewFile([ActionParameter] ReviewFileRequest input)
         {
-            var result = new ReviewFileResponse();
+            var threshold = input.Threshold ?? 0.8;
+            if (threshold is < 0 or > 1)
+                throw new PluginMisconfigurationException("Score threshold must be in range 0..1.");
 
-            var stream = await fileManagementClient.DownloadAsync(input.File);
-            var content = await Transformation.Parse(stream, input.File.Name);
+            var client = CreateLlmClient(input.Model, MistralLlmSettings.Parse(input.Temperature, input.TopP, input.MaxTokens));
+            var processor = CreateContentProcessor(client, input.Model);
 
-            content.SourceLanguage ??= input.SourceLanguage;
-            content.TargetLanguage ??= input.TargetLanguage;
+            await using var file = await FileManagementClient.DownloadAsync(input.File);
+            await using var glossaryFile = await DownloadOptionalAsync(input.Glossary);
 
-            var segments = content.GetUnits()
-                .SelectMany(u => u.Segments)
-                .Where(s => s.State != SegmentState.Final)
-                .ToList();
-
-
-            result.TotalSegmentsProcessed = segments.Count;
-
-            float totalScore = 0;
-            var finalizedSegments = 0;
-            var underThresholdSegments = 0;
-
-            foreach (var segment in segments)
+            var result = await AiAdapters.Mapped(() => processor.ReviewAsync(new ReviewStreamOptions
             {
-                var json = JsonConvert.SerializeObject(new
-                {
-                    translation_id = segment.Id,
-                    source_text = segment.GetSource(),
-                    target_text = segment.GetTarget()
-                });
+                File = file,
+                FileName = input.File.Name,
+                MediaType = input.File.ContentType,
+                SourceLanguage = input.SourceLanguage,
+                TargetLanguage = input.TargetLanguage,
+                OutputFileHandling = input.OutputFileHandling,
+                GlossaryTbx = glossaryFile,
+                AdditionalInstructions = input.AdditionalInstructions,
+                Threshold = threshold,
+                LowScoreThreshold = threshold,
+                StateAboveThreshold = SegmentState.Final,
+                Summary = SummaryOptions.FromToggle(input.GenerateDocumentSummary)
+            }));
 
-                var userPrompt = ReviewPromptBuilder.BuildReviewUserPrompt(
-                    input.AdditionalInstructions,
-                    content.SourceLanguage,
-                    content.TargetLanguage,
-                    json);
+            var review = result.Content.Review!;
 
-                var systemPrompt = ReviewPromptBuilder.BuildReviewSystemPrompt();
-
-                var apiRequest = new CreateChatCompletionRequest
-                {
-                    Model = input.Model,
-                    Messages =
-                    [
-                        new("assistant", systemPrompt),
-                        new("user", userPrompt)
-                    ],
-                    ResponseFormat = new() { Type = "json_object" },
-                    MaxTokens = input.MaxTokens,
-                    Temperature = ParseNullableFloat(input.Temperature),
-                    TopP = ParseNullableFloat(input.TopP)
-                };
-
-                var response = await Client.ExecuteWithJson<SendChatCompletionsResponse>(
-                    ApiEndpoints.Chat + ApiEndpoints.Completions,
-                    Method.Post,
-                    apiRequest);
-
-                result.Usage += response.Usage;
-
-                var raw = response.Choices.First().Message.Content;
-                var qualityScore = ReviewResponseDeserializer.DeserializeScore(raw);
-
-                segment.TargetAttributes.RemoveAll(attr => attr.Name == "extradata");
-                segment.TargetAttributes.Add(new XAttribute(
-                    "extradata",
-                    qualityScore.ToString("0.###", CultureInfo.InvariantCulture)));
-
-                totalScore += qualityScore;
-
-                if (qualityScore >= 0.8f)
-                {
-                    finalizedSegments++;
-                    segment.State = SegmentState.Final;
-                }
-
-                if (qualityScore < 0.6f)
-                    underThresholdSegments++;
-            }
-
-            result.TotalSegmentsFinalized = finalizedSegments;
-            result.TotalSegmentsUnderThreshhold = underThresholdSegments;
-            result.AverageMetric = segments.Count > 0 ? totalScore / segments.Count : 0;
-            result.PercentageSegmentsUnderThreshhold =
-                segments.Count > 0 ? (float)underThresholdSegments / segments.Count * 100 : 0;
-
-            result.File = await UploadResultFile(content, input.OutputFileHandling);
-            return result;
-        }
-
-        private async Task<FileReference> UploadResultFile(Transformation content, string? outputFileHandling)
-        {
-            if (outputFileHandling == "original")
+            return new ReviewFileResponse
             {
-                var targetContent = content.Target();
-                return await fileManagementClient.UploadAsync(
-                    targetContent.Serialize().ToStream(),
-                    targetContent.OriginalMediaType,
-                    targetContent.OriginalName);
-            }
-
-            if (outputFileHandling == "xliff1")
-            {
-                var xliff1String = Xliff1Serializer.Serialize(content);
-                return await fileManagementClient.UploadAsync(
-                    xliff1String.ToStream(),
-                    MediaTypes.Xliff,
-                    content.XliffFileName);
-            }
-
-            return await fileManagementClient.UploadAsync(
-                content.Serialize().ToStream(),
-                MediaTypes.Xliff,
-                content.XliffFileName);
-        }
-
-        private static float? ParseNullableFloat(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-                return null;
-
-            value = value.Replace(',', '.');
-            return float.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var f) ? f : null;
+                File = await UploadAsync(result.File),
+                Usage = ToUsage(result.Content.Usage),
+                TotalSegmentsProcessed = result.Content.ProcessableSegments,
+                TotalSegmentsFinalized = review.Finalized,
+                TotalSegmentsUnderThreshhold = review.UnderThreshold,
+                AverageMetric = (float)review.AverageScore,
+                PercentageSegmentsUnderThreshhold = (float)review.PercentageUnderThreshold
+            };
         }
     }
 }

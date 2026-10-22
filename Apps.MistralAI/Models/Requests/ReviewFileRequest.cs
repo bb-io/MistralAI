@@ -50,6 +50,12 @@ namespace Apps.MistralAI.Models.Requests
         [JsonProperty("top_p")]
         public string? TopP { get; set; }
 
+        [Display("Score threshold", Description = "All segments above this score will automatically be finalized (0..1)")]
+        public double? Threshold { get; set; }
+
+        [Display("Generate document summary", Description = "By default, a short summary of the document is generated and given to the model as context for files of 20 or more segments. This costs one extra request. Set to false to skip it.")]
+        public bool? GenerateDocumentSummary { get; set; }
+
         public FileReference? Glossary { get; set; }
     }
 }

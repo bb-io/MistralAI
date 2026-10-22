@@ -43,7 +43,7 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ### Translation
 
-- **Translate** translate file content retrieved from a CMS or file storage. The output can be used in compatible Blackbird interoperable actions.
+- **Translate** translate file content retrieved from a CMS or file storage. Only segments without a translation are translated. The output can be used in compatible Blackbird interoperable actions.
 - **Translate text** given a text and a locale, tries to create a localized version of the text.
 
 ### Editing
@@ -53,7 +53,7 @@ You can view a [complete guide](https://docs.mindmac.app/how-to.../add-api-key/c
 
 ### Review
 
-- **Review** reviews a translation. This action assumes you have previously translated content in Blackbird through any translation action. Adds a quality score to each unit in the file.
+- **Review** reviews a translation. This action assumes you have previously translated content in Blackbird through any translation action. Adds a quality score to each translated or reviewed segment and sets segments scoring at or above the _Score threshold_ (default 0.8) to final.
 - **Review text** reviews a single text and returns a quality score.
 
 > Note: files are interoperable, under the hood Blackbird may convert to and from bilingual files with metadata but all our Actions are able to accept a lot of different file formats.

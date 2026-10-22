@@ -1,4 +1,7 @@
-﻿using Tests.MistralAI.Base;
+﻿using Apps.MistralAI.Actions;
+using Apps.MistralAI.Models.Requests;
+using Blackbird.Filters.Enums;
+using Tests.MistralAI.Base;
 
 namespace Tests.MistralAI
 {
@@ -8,34 +11,38 @@ namespace Tests.MistralAI
         [TestMethod]
         public async Task EditText_IsSuccess()
         {
-            var action = new Apps.MistralAI.Actions.EditActions(InvocationContext, FileManager);
-            var request = new Apps.MistralAI.Models.Requests.EditTextRequest
+            var action = new EditActions(InvocationContext, FileManager);
+            var request = new EditTextRequest
             {
                 Model = "mistral-large-latest",
                 SourceText = "The capital of France is Paris.",
-                TargetText = "La capital de Francia es Londres."
+                TargetText = "La capital de Francia es Londres.",
+                SourceLanguage = "en",
+                TargetLanguage = "es"
             };
             var response = await action.EditText(request);
-            Console.WriteLine($"Edited Text: {response.EditedText}");
-            Assert.IsNotNull(response);      
+            Print(response);
+            StringAssert.Contains(response.EditedText, "París");
+            AssertNoWarningsLogged();
         }
 
         [TestMethod]
         public async Task EditFile_IsSuccess()
         {
-            var action = new Apps.MistralAI.Actions.EditActions(InvocationContext, FileManager);
-            var request = new Apps.MistralAI.Models.Requests.EditFileRequest
-            {
-                Model = "mistral-large-latest",
-                File = new Blackbird.Applications.Sdk.Common.Files.FileReference
-                {
-                    Name = "Boost the output and quality of your existing localization tools-en-it-TRA_toReview.mxliff"
-                },
-                TargetLanguage = "it",
-            };
-            var response = await action.EditFile(request);
-            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(response));
-            Assert.IsNotNull(response);
+            var file = InMemoryFiles.Add("edit.xlf", InMemoryFileManager.Xliff("en", "it",
+                ("The cat is sleeping on the sofa.", "Il cane dorme sul divano."),
+                ("Good morning.", "Buongiorno.")));
+
+            var action = new EditActions(InvocationContext, InMemoryFiles);
+            var response = await action.EditFile(new EditFileRequest { File = file, Model = "mistral-large-latest", TargetLanguage = "it" });
+
+            Print(response);
+            var segments = InMemoryFiles.Segments(response.File);
+            segments.ForEach(segment => Console.WriteLine($"{segment.GetSource()} => {segment.GetTarget()}"));
+            Assert.AreEqual(2, response.TotalSegmentsReviewed);
+            StringAssert.Contains(segments[0].GetTarget(), "gatto");
+            Assert.IsTrue(segments.All(segment => segment.State == SegmentState.Reviewed));
+            AssertNoWarningsLogged();
         }
     }
 }

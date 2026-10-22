@@ -23,9 +23,6 @@ public class CreateChatCompletionRequest
     [JsonProperty("random_seed")]
     public int? RandomSeed { get; set; }
 
-    [JsonProperty("response_format")]
-    public ResponseFormatRequest? ResponseFormat { get; set; }
-
     public CreateChatCompletionRequest()
     {
         Model = string.Empty;
@@ -61,10 +58,4 @@ public class CreateChatCompletionRequest
             }
         }
     }
-}
-
-public class ResponseFormatRequest
-{
-    [JsonProperty("type")]
-    public string? Type { get; set; }
 }

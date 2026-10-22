@@ -27,9 +27,10 @@ namespace Apps.MistralAI.Models.Requests
         [StaticDataSource(typeof(ProcessFileFormatHandler))]
         public string? OutputFileHandling { get; set; }
 
-        [Display("Bucket size", Description = "Number of segments per batch. Default: 1500.")]
+        [Display("Bucket size", Description = "Specify the maximum number of source texts to be translated at once. Default value: 250. Buckets are also sized to fit the model's output limit. (See our documentation for an explanation)")]
         public int? BucketSize { get; set; }
 
-        public int GetBucketSize() => BucketSize ?? 1500;
+        [Display("Generate document summary", Description = "By default, a short summary of the document is generated and given to the model as context for files of 20 or more segments. This costs one extra request. Set to false to skip it.")]
+        public bool? GenerateDocumentSummary { get; set; }
     }
 }
