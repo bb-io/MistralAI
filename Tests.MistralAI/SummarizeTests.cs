@@ -16,8 +16,9 @@ namespace Tests.MistralAI
         public async Task SummarizeText_IsSuccess()
         {
             var action = new SummarizeActions(InvocationContext, FileManager);
-            var response = await action.SummarizeText(Article, new SummarizeRequest
+            var response = await action.SummarizeText(new SummarizeTextRequest
             {
+                Text = Article,
                 Model = "mistral-large-latest",
                 Language = "fr-FR",
                 MaximumWords = 30,
@@ -40,7 +41,7 @@ namespace Tests.MistralAI
                 ("Customers keep their full order history.", "I clienti conservano l'intera cronologia degli ordini.")));
 
             var action = new SummarizeActions(InvocationContext, InMemoryFiles);
-            var response = await action.Summarize(file, new SummarizeRequest { Model = "mistral-large-latest", MaximumWords = 25 });
+            var response = await action.Summarize(new SummarizeContentRequest { File = file, Model = "mistral-large-latest", MaximumWords = 25 });
 
             Print(response);
             Assert.IsFalse(string.IsNullOrWhiteSpace(response.Summary));

@@ -6,8 +6,11 @@ using Blackbird.Applications.Sdk.Common.Files;
 
 namespace Apps.MistralAI.Models.Requests
 {
-    public class SummarizeRequest
+    public class SummarizeTextRequest
     {
+        [Display("Text")]
+        public string Text { get; set; } = string.Empty;
+
         [Display("Model", Description = "This parameter controls which Mistral model answers your request")]
         [DataSource(typeof(ModelsDataHandler))]
         public string Model { get; set; } = string.Empty;
