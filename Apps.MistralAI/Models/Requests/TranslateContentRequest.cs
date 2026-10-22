@@ -1,4 +1,5 @@
 ﻿using Apps.MistralAI.DataSourceHandlers;
+using Apps.MistralAI.DataSourceHandlers.Static;
 using Blackbird.Applications.Sdk.Common;
 using Blackbird.Applications.Sdk.Common.Dictionaries;
 using Blackbird.Applications.Sdk.Common.Dynamic;
@@ -14,6 +15,7 @@ namespace Apps.MistralAI.Models.Requests
         public FileReference File { get; set; } = default!;
 
         [Display("Target language")]
+        [DataSource(typeof(LocaleDataSourceHandler))]
         public string TargetLanguage { get; set; } = string.Empty;
 
         [Display("Model")]
@@ -21,6 +23,7 @@ namespace Apps.MistralAI.Models.Requests
         public string Model { get; set; }
 
         [Display("Source language", Description = "Optional. If not set, Mistral will infer it from the content.")]
+        [DataSource(typeof(LocaleDataSourceHandler))]
         public string? SourceLanguage { get; set; }
 
         [Display("Output file handling")]
