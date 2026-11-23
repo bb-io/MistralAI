@@ -70,7 +70,8 @@ namespace Apps.MistralAI.Actions
                 OutputFileHandling = input.OutputFileHandling,
                 GlossaryTbx = glossaryFile,
                 AdditionalInstructions = prompt,
-                Summary = SummaryOptions.FromToggle(input.GenerateDocumentSummary)
+                Summary = SummaryOptions.FromToggle(input.GenerateDocumentSummary),
+                IncludeSegmentNotes = input.IncludeSegmentNotes ?? false
             }));
 
             var content = result.Content;

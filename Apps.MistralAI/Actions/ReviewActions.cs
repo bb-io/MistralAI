@@ -79,7 +79,8 @@ namespace Apps.MistralAI.Actions
                 Threshold = threshold,
                 LowScoreThreshold = threshold,
                 StateAboveThreshold = SegmentState.Final,
-                Summary = SummaryOptions.FromToggle(input.GenerateDocumentSummary)
+                Summary = SummaryOptions.FromToggle(input.GenerateDocumentSummary),
+                IncludeSegmentNotes = input.IncludeSegmentNotes ?? false
             }));
 
             var review = result.Content.Review!;
